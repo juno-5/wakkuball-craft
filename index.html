@@ -1,0 +1,3529 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0d0b1f">
+<title>왁뿌 스튜디오</title>
+<style>
+/* ═══════════════════════════════════════════════════════════
+   RESET & BASE
+   ═══════════════════════════════════════════════════════════ */
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{
+  width:100%;height:100%;overflow:hidden;
+  background:#0a0814;
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans KR',sans-serif;
+  touch-action:none;user-select:none;-webkit-user-select:none;
+  color:#fff;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   APP CONTAINER
+   ═══════════════════════════════════════════════════════════ */
+#app{position:relative;width:100%;height:100%;overflow:hidden}
+canvas{display:block;position:absolute;top:0;left:0;z-index:1}
+#ui{
+  position:absolute;inset:0;z-index:10;
+  overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:0 16px;
+  padding-top:max(50px,calc(env(safe-area-inset-top) + 20px));
+  padding-bottom:max(30px,calc(env(safe-area-inset-bottom) + 20px));
+}
+#phaseLabel{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  color:#fff;font-size:24px;font-weight:800;z-index:35;
+  opacity:0;pointer-events:none;
+  text-shadow:0 2px 20px rgba(0,0,0,.5);
+  transition:opacity .5s;text-align:center;line-height:1.6;
+}
+#phaseLabel.show{opacity:1}
+#progressFill{
+  position:absolute;top:max(10px,env(safe-area-inset-top));
+  left:16px;right:16px;height:4px;z-index:30;
+  background:rgba(255,255,255,.06);border-radius:4px;
+  overflow:hidden;display:none;
+}
+#progressFill::after{
+  content:'';display:block;height:100%;width:0%;
+  background:linear-gradient(90deg,#c084fc,#818cf8);
+  border-radius:4px;
+  transition:width .3s ease;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   HOME SCREEN — Category Grid
+   ═══════════════════════════════════════════════════════════ */
+.home-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:14px;
+  max-width:400px;margin:0 auto;
+  padding-top:20px;
+}
+.home-grid::before{
+  content:'왁뿌 스튜디오';
+  grid-column:1/-1;text-align:center;
+  font-size:36px;font-weight:900;
+  background:linear-gradient(135deg,#fff 0%,#c4b5fd 50%,#818cf8 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin-bottom:8px;letter-spacing:-1px;
+}
+.home-grid::after{
+  content:'ASMR 왁스 · 스퀴시 · 말랑이 · 슬라임';
+  grid-column:1/-1;text-align:center;
+  font-size:11px;color:rgba(255,255,255,.35);
+  letter-spacing:2px;font-weight:500;
+  margin-top:-12px;margin-bottom:12px;
+  order:-1;
+}
+.cat-card{
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:22px;
+  padding:24px 12px 18px;
+  display:flex;flex-direction:column;align-items:center;
+  cursor:pointer;position:relative;
+  transition:transform .15s,box-shadow .15s;
+  animation:fadeSlideUp .5s ease both;
+}
+.cat-card:active{transform:scale(.93);box-shadow:0 0 30px rgba(138,100,255,.15)}
+.cat-preview{
+  width:90px;height:90px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  border:2px solid rgba(255,255,255,.08);
+  transition:transform .3s;
+}
+.cat-card:active .cat-preview{transform:scale(.9)}
+.cat-emoji{font-size:42px;filter:drop-shadow(0 4px 8px rgba(0,0,0,.3))}
+.cat-name{color:#fff;font-size:17px;font-weight:700;margin-top:12px}
+.cat-desc{color:rgba(255,255,255,.35);font-size:11px;margin-top:4px;text-align:center}
+.cat-badge{
+  position:absolute;top:8px;right:8px;
+  color:#fff;font-size:9px;font-weight:800;
+  padding:3px 8px;border-radius:10px;letter-spacing:.5px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   VARIANT SCREEN
+   ═══════════════════════════════════════════════════════════ */
+.screen-header{
+  display:flex;align-items:center;gap:12px;
+  margin-bottom:20px;
+}
+.screen-header h2{font-size:22px;font-weight:800}
+.back-btn{
+  width:42px;height:42px;border-radius:50%;border:none;
+  background:rgba(255,255,255,.08);color:rgba(255,255,255,.6);
+  font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  flex-shrink:0;transition:background .15s;
+}
+.back-btn:active{background:rgba(255,255,255,.15)}
+.variant-scroll{
+  display:flex;gap:14px;overflow-x:auto;
+  padding:8px 4px 16px;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+}
+.variant-scroll::-webkit-scrollbar{display:none}
+.variant-card{
+  flex-shrink:0;width:130px;
+  background:rgba(255,255,255,.04);
+  border:2px solid rgba(255,255,255,.06);
+  border-radius:20px;padding:20px 10px 14px;
+  display:flex;flex-direction:column;align-items:center;
+  cursor:pointer;transition:transform .15s,border-color .2s;
+  animation:fadeSlideUp .4s ease both;
+}
+.variant-card:active{transform:scale(.93)}
+.variant-card.selected{border-color:rgba(192,132,252,.5);background:rgba(192,132,252,.08)}
+.variant-swatch{
+  width:56px;height:56px;border-radius:50%;
+  box-shadow:inset -4px -4px 12px rgba(0,0,0,.3),inset 3px 3px 8px rgba(255,255,255,.15),0 4px 16px rgba(0,0,0,.3);
+  margin-bottom:10px;
+}
+.variant-emoji{font-size:11px;margin-bottom:4px;opacity:.6}
+.variant-name{font-size:13px;font-weight:600}
+.start-btn{
+  display:block;width:100%;max-width:300px;margin:24px auto 0;
+  padding:16px;border:none;border-radius:16px;
+  background:linear-gradient(135deg,#7c3aed,#6366f1);
+  color:#fff;font-size:16px;font-weight:700;
+  cursor:pointer;transition:transform .15s,opacity .15s;
+  letter-spacing:.5px;
+}
+.start-btn:active{transform:scale(.96);opacity:.85}
+
+/* ═══════════════════════════════════════════════════════════
+   INGREDIENT SCREEN
+   ═══════════════════════════════════════════════════════════ */
+.ingredient-list{
+  max-width:400px;margin:0 auto;
+}
+.ingredient-row{
+  display:flex;align-items:center;gap:14px;
+  padding:14px 16px;
+  background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.05);
+  border-radius:16px;margin-bottom:10px;
+  animation:fadeSlideUp .4s ease both;
+}
+.ing-emoji{font-size:28px;flex-shrink:0;width:42px;text-align:center}
+.ing-info{flex:1}
+.ing-name{font-size:15px;font-weight:600}
+.ing-detail{font-size:12px;color:rgba(255,255,255,.4);margin-top:2px}
+
+/* ═══════════════════════════════════════════════════════════
+   MAKING SCREEN
+   ═══════════════════════════════════════════════════════════ */
+.make-info{
+  position:absolute;top:max(60px,calc(env(safe-area-inset-top) + 40px));
+  left:0;right:0;text-align:center;z-index:20;
+  pointer-events:none;
+}
+.make-step-title{font-size:20px;font-weight:800;margin-bottom:6px}
+.make-step-hint{font-size:13px;color:rgba(255,255,255,.45)}
+.make-step-label{font-size:11px;color:rgba(255,255,255,.25);margin-top:8px;letter-spacing:2px}
+.progress-bar-fill{
+  position:absolute;top:max(10px,env(safe-area-inset-top));
+  left:16px;right:16px;height:4px;z-index:25;
+  background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;
+}
+.progress-bar-fill::after{
+  content:'';display:block;height:100%;
+  width:var(--progress, 0%);
+  background:linear-gradient(90deg,#c084fc,#818cf8);
+  border-radius:4px;transition:width .3s ease;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PLAY SCREEN BUTTONS
+   ═══════════════════════════════════════════════════════════ */
+.play-back{
+  position:absolute;z-index:30;
+  top:max(14px,env(safe-area-inset-top));left:14px;
+  width:42px;height:42px;border-radius:50%;border:none;
+  background:rgba(255,255,255,.08);color:rgba(255,255,255,.5);
+  font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,.06);
+}
+.play-back:active{background:rgba(255,255,255,.15)}
+.play-hud{
+  position:absolute;z-index:30;
+  top:max(14px,env(safe-area-inset-top));right:14px;
+  display:flex;align-items:center;gap:8px;
+}
+.play-hud-text{color:rgba(255,255,255,.5);font-size:12px;font-weight:600}
+
+/* ═══════════════════════════════════════════════════════════
+   ANIMATIONS
+   ═══════════════════════════════════════════════════════════ */
+@keyframes fadeSlideUp{
+  from{opacity:0;transform:translateY(20px)}
+  to{opacity:1;transform:translateY(0)}
+}
+@keyframes pulseGlow{
+  0%,100%{box-shadow:0 0 20px rgba(138,100,255,.1)}
+  50%{box-shadow:0 0 40px rgba(138,100,255,.25)}
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════════ */
+@media (min-width:430px){
+  .home-grid::before{font-size:44px}
+  .cat-card{padding:28px 14px 20px}
+  .cat-preview{width:100px;height:100px}
+  .cat-emoji{font-size:48px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="gameCanvas"></canvas>
+  <div id="ui"></div>
+  <div id="phaseLabel"></div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════
+// 왁뿌 스튜디오 — Complete App
+// ════════════════════════════════════════════════════════
+
+// ============================================================
+//  WAKKUBALL APP — PART 2: DATA DEFINITIONS + AUDIO ENGINE
+//  Place this inside a <script> tag
+// ============================================================
+
+/* ────────────────────────────────────────────────────────────
+   PRODUCT DATA
+   ──────────────────────────────────────────────────────────── */
+
+const CATEGORIES = [
+  /* ── 1. 왁뿌볼 ─────────────────────────────────────────── */
+  {
+    id: 'wakkuball', name: '왁뿌볼', emoji: '🎈', desc: '톡톡 터지는 왁스 ASMR',
+    badge: '인기 1위',
+    color: '#4CAF50', darkColor: '#2E7D32',
+    makeSteps: [
+      { emoji: '🫧', title: '왁스 녹이기', hint: '화면을 문질러 왁스를 녹여요', duration: 2500 },
+      { emoji: '🎨', title: '색 입히기', hint: '알록달록 색소를 섞어요', duration: 2000 },
+      { emoji: '✨', title: '모양 만들기', hint: '동그랗게 모양을 잡아요', duration: 2000 },
+      { emoji: '❄️', title: '굳히기', hint: '차갑게 식혀서 굳혀요', duration: 1500 }
+    ],
+    variants: [
+      {
+        id: 'apple', name: '청사과', emoji: '🍏', badge: '인기', shape: 'apple',
+        wax: '#6abf4b', waxHi: '#8dd88d', waxDk: '#3a8a2a', waxShd: '#4a9a3a',
+        inner: '#b8e6b8', innerHi: '#e0f5e0', innerDk: '#7cc47c',
+        tone: 'crisp', bounce: .45, damp: .90,
+        ingredients: [
+          { emoji: '🎈', name: '말랑 고무 풍선',  desc: '탱탱한 고무 껍질이에요' },
+          { emoji: '🕸️', name: '메쉬망',          desc: '그물처럼 생긴 망이에요' },
+          { emoji: '💧', name: '오르비즈',         desc: '물 먹으면 커지는 젤리 구슬!' },
+          { emoji: '🧴', name: '물풀',             desc: '투명한 풀이에요' },
+          { emoji: '🎨', name: '초록 색소',        desc: '새콤한 사과색을 만들어요' }
+        ]
+      },
+      {
+        id: 'strawberry', name: '딸기', emoji: '🍓', badge: '달콤', shape: 'strawberry',
+        wax: '#e8445a', waxHi: '#f47e90', waxDk: '#b0162c', waxShd: '#c92540',
+        inner: '#f7c4cc', innerHi: '#fde8ec', innerDk: '#e8909c',
+        tone: 'warm', bounce: .42, damp: .88,
+        ingredients: [
+          { emoji: '🎈', name: '말랑 고무 풍선',  desc: '탱탱한 고무 껍질이에요' },
+          { emoji: '🕸️', name: '메쉬망',          desc: '그물처럼 생긴 망이에요' },
+          { emoji: '💧', name: '오르비즈',         desc: '물 먹으면 커지는 젤리 구슬!' },
+          { emoji: '🧴', name: '물풀',             desc: '투명한 풀이에요' },
+          { emoji: '🌸', name: '딸기 향 오일',    desc: '달콤한 딸기 향이 나요' },
+          { emoji: '🎨', name: '빨강 색소',        desc: '새빨간 딸기색을 만들어요' }
+        ]
+      },
+      {
+        id: 'grape', name: '포도', emoji: '🍇', badge: '신비', shape: 'grape',
+        wax: '#7b4fa6', waxHi: '#a67fcb', waxDk: '#4c2278', waxShd: '#62338f',
+        inner: '#d4b8e8', innerHi: '#ede0f7', innerDk: '#b090cc',
+        tone: 'deep', bounce: .40, damp: .85,
+        ingredients: [
+          { emoji: '🎈', name: '말랑 고무 풍선',  desc: '탱탱한 고무 껍질이에요' },
+          { emoji: '🕸️', name: '메쉬망',          desc: '그물처럼 생긴 망이에요' },
+          { emoji: '💧', name: '오르비즈',         desc: '물 먹으면 커지는 젤리 구슬!' },
+          { emoji: '🧴', name: '물풀',             desc: '투명한 풀이에요' },
+          { emoji: '🍇', name: '포도 향 오일',    desc: '새콤달콤한 포도 향이에요' },
+          { emoji: '🎨', name: '보라 색소',        desc: '신비로운 포도색을 만들어요' }
+        ]
+      },
+      {
+        id: 'lemon', name: '레몬', emoji: '🍋', badge: '상큼', shape: 'lemon',
+        wax: '#f5e142', waxHi: '#faf07a', waxDk: '#c4b010', waxShd: '#d9c520',
+        inner: '#fdf5b0', innerHi: '#fffde0', innerDk: '#f5e87a',
+        tone: 'bright', bounce: .48, damp: .92,
+        ingredients: [
+          { emoji: '🎈', name: '말랑 고무 풍선',  desc: '탱탱한 고무 껍질이에요' },
+          { emoji: '🕸️', name: '메쉬망',          desc: '그물처럼 생긴 망이에요' },
+          { emoji: '💧', name: '오르비즈',         desc: '물 먹으면 커지는 젤리 구슬!' },
+          { emoji: '🧴', name: '물풀',             desc: '투명한 풀이에요' },
+          { emoji: '🍋', name: '레몬 향 오일',    desc: '상큼한 레몬 향이에요' },
+          { emoji: '🎨', name: '노랑 색소',        desc: '햇살 같은 노란색을 만들어요' }
+        ]
+      },
+      {
+        id: 'peach', name: '복숭아', emoji: '🍑', badge: '촉촉', shape: 'peach',
+        wax: '#f4a46c', waxHi: '#f8c89a', waxDk: '#c0703a', waxShd: '#d8895a',
+        inner: '#fce0c4', innerHi: '#fff0e4', innerDk: '#f0c09c',
+        tone: 'soft', bounce: .43, damp: .87,
+        ingredients: [
+          { emoji: '🎈', name: '말랑 고무 풍선',  desc: '탱탱한 고무 껍질이에요' },
+          { emoji: '🕸️', name: '메쉬망',          desc: '그물처럼 생긴 망이에요' },
+          { emoji: '💧', name: '오르비즈',         desc: '물 먹으면 커지는 젤리 구슬!' },
+          { emoji: '🧴', name: '물풀',             desc: '투명한 풀이에요' },
+          { emoji: '🍑', name: '복숭아 향 오일',  desc: '달콤하고 촉촉한 향이에요' },
+          { emoji: '🎨', name: '주황 색소',        desc: '복숭아빛 주황을 만들어요' }
+        ]
+      }
+    ]
+  },
+
+  /* ── 2. 스퀴시 ─────────────────────────────────────────── */
+  {
+    id: 'squishy', name: '스퀴시', emoji: '🍩', desc: '폭신폭신 스퀴시 만들기',
+    badge: '신규',
+    color: '#FF9800', darkColor: '#E65100',
+    makeSteps: [
+      { emoji: '🧵', title: '스펀지 자르기', hint: '폼을 예쁘게 잘라요', duration: 2500 },
+      { emoji: '🎨', title: '색칠하기', hint: '부드럽게 색을 칠해요', duration: 2000 },
+      { emoji: '✨', title: '코팅하기', hint: '반짝반짝 코팅해요', duration: 2000 }
+    ],
+    variants: [
+      {
+        id: 'donut', name: '도넛', emoji: '🍩', badge: '쫀득', shape: 'donut',
+        wax: '#c8864a', waxHi: '#e8b07c', waxDk: '#8a5520', waxShd: '#a86c30',
+        inner: '#f9dfc0', innerHi: '#fef3e8', innerDk: '#e8c090',
+        tone: 'warm', bounce: .30, damp: .70,
+        ingredients: [
+          { emoji: '🧽', name: '스펀지 폼',       desc: '폭신폭신한 폼이에요' },
+          { emoji: '🎨', name: '갈색 페인트',     desc: '도넛 색을 만들어요' },
+          { emoji: '🍬', name: '글레이즈 젤',     desc: '반짝반짝 윤기가 나요' },
+          { emoji: '✨', name: '스프링클 장식',   desc: '알록달록 뿌리면 예뻐요' },
+          { emoji: '🌈', name: '핑크 아이싱',    desc: '달콤한 핑크 아이싱이에요' }
+        ]
+      },
+      {
+        id: 'cupcake', name: '컵케이크', emoji: '🧁', badge: '달콤', shape: 'cupcake',
+        wax: '#f4b8d4', waxHi: '#fad8e8', waxDk: '#c07090', waxShd: '#d488a8',
+        inner: '#fff0f7', innerHi: '#fff8fc', innerDk: '#f0c8dc',
+        tone: 'bright', bounce: .32, damp: .72,
+        ingredients: [
+          { emoji: '🧽', name: '스펀지 폼',       desc: '폭신폭신한 폼이에요' },
+          { emoji: '🎀', name: '핑크 폼 클레이', desc: '부드럽게 모양을 잡아요' },
+          { emoji: '🍦', name: '하얀 크림 폼',   desc: '휘핑크림처럼 올려요' },
+          { emoji: '🫐', name: '블루베리 장식',  desc: '동글동글 귀여워요' },
+          { emoji: '✨', name: '반짝이 파우더',  desc: '반짝반짝 빛나게 해요' }
+        ]
+      },
+      {
+        id: 'cake', name: '케이크', emoji: '🎂', badge: '특별', shape: 'cake',
+        wax: '#f9c8a0', waxHi: '#fde4c8', waxDk: '#d09060', waxShd: '#e0a878',
+        inner: '#fff6ee', innerHi: '#fffaf5', innerDk: '#f5ddc0',
+        tone: 'soft', bounce: .28, damp: .68,
+        ingredients: [
+          { emoji: '🧽', name: '스펀지 폼',       desc: '폭신폭신한 폼이에요' },
+          { emoji: '🎨', name: '아이보리 페인트', desc: '케이크 베이스 색이에요' },
+          { emoji: '🍓', name: '딸기 장식 폼',   desc: '빨간 딸기 모양이에요' },
+          { emoji: '🌸', name: '꽃 장식',         desc: '예쁜 꽃 장식을 붙여요' },
+          { emoji: '🕯️', name: '초 장식',         desc: '생일 초를 꽂아요' },
+          { emoji: '✨', name: '반짝이 젤',       desc: '케이크를 반짝반짝하게 해요' }
+        ]
+      }
+    ]
+  },
+
+  /* ── 3. 말랑이 ─────────────────────────────────────────── */
+  {
+    id: 'mallangi', name: '말랑이', emoji: '🐱', desc: '귀여운 말랑이 친구들',
+    badge: '귀여워',
+    color: '#E91E63', darkColor: '#880E4F',
+    makeSteps: [
+      { emoji: '🫗', title: '실리콘 붓기', hint: '틀에 실리콘을 부어요', duration: 2500 },
+      { emoji: '🎨', title: '얼굴 그리기', hint: '귀여운 얼굴을 그려요', duration: 2000 },
+      { emoji: '❄️', title: '굳히기', hint: '차갑게 식혀서 굳혀요', duration: 1500 }
+    ],
+    variants: [
+      {
+        id: 'cat', name: '고양이', emoji: '🐱', badge: '야옹', shape: 'cat',
+        wax: '#f5e6d0', waxHi: '#faf4ea', waxDk: '#c8b498', waxShd: '#dcc8b0',
+        inner: '#fff8f0', innerHi: '#fffcf8', innerDk: '#f0e0cc',
+        tone: 'soft', bounce: .38, damp: .82,
+        ingredients: [
+          { emoji: '🤍', name: '화이트 슬라임',  desc: '하얗고 말랑한 기본 재료에요' },
+          { emoji: '🧴', name: '폼 클렌저',       desc: '폭신하게 만들어줘요' },
+          { emoji: '🎀', name: '분홍 색소',       desc: '귀와 볼을 분홍색으로 해요' },
+          { emoji: '🖤', name: '검정 색소',       desc: '눈과 코를 그려요' },
+          { emoji: '✨', name: '반짝이 파우더',  desc: '반짝이는 고양이가 돼요' }
+        ]
+      },
+      {
+        id: 'rabbit', name: '토끼', emoji: '🐰', badge: '폴짝', shape: 'rabbit',
+        wax: '#fce8ee', waxHi: '#fef4f7', waxDk: '#e0b4c4', waxShd: '#ecc8d4',
+        inner: '#fff4f8', innerHi: '#fff9fc', innerDk: '#f5d8e4',
+        tone: 'bright', bounce: .50, damp: .88,
+        ingredients: [
+          { emoji: '🤍', name: '화이트 슬라임',  desc: '하얗고 말랑한 기본 재료에요' },
+          { emoji: '🧴', name: '폼 클렌저',       desc: '폭신하게 만들어줘요' },
+          { emoji: '🩷', name: '베이비핑크 색소', desc: '귀 안쪽 색이에요' },
+          { emoji: '🩵', name: '하늘색 글리터',  desc: '토끼 눈을 반짝이게 해요' },
+          { emoji: '🌸', name: '장미 향 오일',   desc: '꽃향기 나는 토끼에요' }
+        ]
+      },
+      {
+        id: 'bear', name: '곰돌이', emoji: '🐻', badge: '포근', shape: 'bear',
+        wax: '#c8a878', waxHi: '#e0c8a0', waxDk: '#987040', waxShd: '#b08858',
+        inner: '#f0e0c0', innerHi: '#f8f0e0', innerDk: '#d8bc90',
+        tone: 'deep', bounce: .33, damp: .78,
+        ingredients: [
+          { emoji: '🤎', name: '브라운 슬라임',  desc: '초콜릿색 말랑 재료에요' },
+          { emoji: '🧴', name: '폼 클렌저',       desc: '폭신하게 만들어줘요' },
+          { emoji: '🍫', name: '초코 색소',       desc: '맛있는 초코색을 만들어요' },
+          { emoji: '🤍', name: '베이지 색소',    desc: '배 부분을 연하게 해요' },
+          { emoji: '🌰', name: '헤이즐넛 향',    desc: '고소하고 달콤한 향이에요' }
+        ]
+      }
+    ]
+  },
+
+  /* ── 4. 슬라임 ─────────────────────────────────────────── */
+  {
+    id: 'slime', name: '슬라임', emoji: '🟢', desc: '끈적끈적 슬라임 놀이',
+    badge: '클래식',
+    color: '#00BCD4', darkColor: '#006064',
+    makeSteps: [
+      { emoji: '🫗', title: '풀 넣기', hint: '투명한 풀을 넣어요', duration: 2500 },
+      { emoji: '💧', title: '활성제 넣기', hint: '붕사 활성제를 넣어요', duration: 2000 },
+      { emoji: '🤲', title: '반죽하기', hint: '손으로 반죽해요', duration: 2500 }
+    ],
+    variants: [
+      {
+        id: 'basic', name: '베이직', emoji: '💚', badge: '기본', shape: 'blob',
+        wax: '#4dd0b8', waxHi: '#7ee8d4', waxDk: '#1ea888', waxShd: '#2cbca0',
+        inner: '#b4f0e8', innerHi: '#dffaf5', innerDk: '#7ad8cc',
+        tone: 'wet', bounce: .20, damp: .60,
+        ingredients: [
+          { emoji: '🧴', name: '물풀',             desc: '슬라임의 핵심 재료에요' },
+          { emoji: '🫧', name: '붕사 가루',        desc: '물에 녹여서 넣어요' },
+          { emoji: '💧', name: '물',               desc: '적당히 넣어야 해요' },
+          { emoji: '🎨', name: '초록 색소',        desc: '탁한 초록색을 만들어요' },
+          { emoji: '✨', name: '글리터 파우더',   desc: '반짝이게 뿌려줘요' }
+        ]
+      },
+      {
+        id: 'glitter', name: '글리터', emoji: '✨', badge: '반짝', shape: 'blob',
+        wax: '#9b70e0', waxHi: '#c4a0f0', waxDk: '#6840b8', waxShd: '#8055cc',
+        inner: '#ddc8f8', innerHi: '#f0e4ff', innerDk: '#bba0e8',
+        tone: 'bright', bounce: .22, damp: .62,
+        ingredients: [
+          { emoji: '🧴', name: '물풀',             desc: '슬라임의 핵심 재료에요' },
+          { emoji: '🫧', name: '붕사 가루',        desc: '물에 녹여서 넣어요' },
+          { emoji: '✨', name: '홀로그램 글리터', desc: '색깔이 바뀌며 빛나요' },
+          { emoji: '🌈', name: '보라 색소',        desc: '신비로운 보라색이에요' },
+          { emoji: '⭐', name: '별 모양 글리터',  desc: '별이 반짝반짝해요' },
+          { emoji: '💜', name: '라벤더 향',       desc: '은은한 보라 향이에요' }
+        ]
+      },
+      {
+        id: 'cloud', name: '클라우드', emoji: '☁️', badge: '폭신', shape: 'blob',
+        wax: '#d8eaf8', waxHi: '#eef6ff', waxDk: '#a8c8e8', waxShd: '#bcd8f0',
+        inner: '#f0f8ff', innerHi: '#f8fcff', innerDk: '#d0e8f8',
+        tone: 'airy', bounce: .15, damp: .55,
+        ingredients: [
+          { emoji: '🧴', name: '물풀',             desc: '슬라임의 핵심 재료에요' },
+          { emoji: '🫧', name: '붕사 가루',        desc: '물에 녹여서 넣어요' },
+          { emoji: '☁️', name: '쉐이빙 폼',        desc: '구름처럼 폭신해져요!' },
+          { emoji: '💨', name: '하얀 색소',        desc: '구름처럼 하얗게 해요' },
+          { emoji: '🩵', name: '하늘색 색소',     desc: '맑은 하늘색을 더해요' },
+          { emoji: '🌿', name: '민트 향 오일',    desc: '시원하고 상쾌한 향이에요' }
+        ]
+      }
+    ]
+  }
+];
+
+// Flat lookup maps built from CATEGORIES
+const CATEGORY_MAP  = Object.fromEntries(CATEGORIES.map(c => [c.id, c]));
+const VARIANT_MAP   = {};
+CATEGORIES.forEach(cat =>
+  cat.variants.forEach(v => { VARIANT_MAP[`${cat.id}:${v.id}`] = { ...v, category: cat }; })
+);
+
+
+/* ────────────────────────────────────────────────────────────
+   AUDIO ENGINE
+   ──────────────────────────────────────────────────────────── */
+
+class AudioEngine {
+  constructor() {
+    this.ctx          = null;   // AudioContext — created on first user interaction
+    this._noiseBuffer = null;   // 2-second white noise buffer
+    this._compressor  = null;   // Master dynamics compressor
+    this._ready       = false;
+  }
+
+  // ── Initialisation ───────────────────────────────────────
+  init() {
+    if (this._ready) return;
+    try {
+      this.ctx         = new (window.AudioContext || window.webkitAudioContext)();
+      this._noiseBuffer = this._buildNoiseBuffer(2);
+      this._compressor  = this._buildCompressor();
+      this._ready       = true;
+    } catch (e) {
+      console.warn('[AudioEngine] Web Audio API not available:', e);
+    }
+  }
+
+  _buildNoiseBuffer(seconds) {
+    const rate    = this.ctx.sampleRate;
+    const buf     = this.ctx.createBuffer(1, rate * seconds, rate);
+    const data    = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    return buf;
+  }
+
+  _buildCompressor() {
+    const c = this.ctx.createDynamicsCompressor();
+    c.threshold.value = -18;
+    c.knee.value      =  10;
+    c.ratio.value     =   6;
+    c.attack.value    = 0.003;
+    c.release.value   = 0.25;
+    c.connect(this.ctx.destination);
+    return c;
+  }
+
+  // ── Low-level helpers ────────────────────────────────────
+
+  /** Filtered noise burst — returns gain node (already connected to compressor) */
+  _noise(duration = 0.15, filterType = 'bandpass', freq = 1200, freqEnd = 600, volume = 0.4) {
+    if (!this._ready) return null;
+    const ctx = this.ctx;
+    const t   = ctx.currentTime;
+
+    const src = ctx.createBufferSource();
+    src.buffer = this._noiseBuffer;
+    src.loop   = true;
+
+    const filt = ctx.createBiquadFilter();
+    filt.type            = filterType;
+    filt.frequency.setValueAtTime(freq, t);
+    filt.frequency.exponentialRampToValueAtTime(Math.max(freqEnd, 20), t + duration);
+    filt.Q.value = 1.8;
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(volume, t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+
+    src.connect(filt);
+    filt.connect(gain);
+    gain.connect(this._compressor);
+    src.start(t);
+    src.stop(t + duration + 0.05);
+    return gain;
+  }
+
+  /** Sine oscillator sweep */
+  _sine(freq = 440, freqEnd = 220, duration = 0.2, volume = 0.3) {
+    return this._tone(freq, freqEnd, duration, volume, 'sine');
+  }
+
+  /** Configurable oscillator with frequency & gain envelope */
+  _tone(freq = 440, freqEnd = 220, duration = 0.2, volume = 0.3, type = 'sine') {
+    if (!this._ready) return null;
+    const ctx = this.ctx;
+    const t   = ctx.currentTime;
+
+    const osc  = ctx.createOscillator();
+    osc.type   = type;
+    osc.frequency.setValueAtTime(freq, t);
+    if (freqEnd && freqEnd !== freq)
+      osc.frequency.exponentialRampToValueAtTime(Math.max(freqEnd, 10), t + duration);
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(volume, t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+
+    osc.connect(gain);
+    gain.connect(this._compressor);
+    osc.start(t);
+    osc.stop(t + duration + 0.05);
+    return gain;
+  }
+
+  // ── Public sound methods ─────────────────────────────────
+
+  /**
+   * crack(tone) — Wax cracking sound.
+   * 3 layers: noise burst (high band) + tonal sine + low crunch.
+   * tone: 'crisp' | 'warm' | 'bright' | 'deep' | 'soft' | 'wet' | 'airy'
+   */
+  crack(tone = 'crisp') {
+    if (!this._ready) return;
+    const profiles = {
+      crisp:  { nFreq: 3200, nFreqEnd: 800,  nVol: 0.55, sFreq: 420, sEnd: 180, sVol: 0.22, cFreq: 80,  cEnd: 30  },
+      warm:   { nFreq: 2000, nFreqEnd: 600,  nVol: 0.50, sFreq: 320, sEnd: 140, sVol: 0.24, cFreq: 70,  cEnd: 28  },
+      bright: { nFreq: 4000, nFreqEnd: 1000, nVol: 0.60, sFreq: 520, sEnd: 220, sVol: 0.20, cFreq: 90,  cEnd: 35  },
+      deep:   { nFreq: 1200, nFreqEnd: 300,  nVol: 0.65, sFreq: 220, sEnd: 80,  sVol: 0.30, cFreq: 55,  cEnd: 20  },
+      soft:   { nFreq: 1800, nFreqEnd: 500,  nVol: 0.40, sFreq: 280, sEnd: 120, sVol: 0.18, cFreq: 65,  cEnd: 25  },
+      wet:    { nFreq: 1400, nFreqEnd: 400,  nVol: 0.48, sFreq: 260, sEnd: 100, sVol: 0.26, cFreq: 60,  cEnd: 22  },
+      airy:   { nFreq: 3800, nFreqEnd: 700,  nVol: 0.35, sFreq: 480, sEnd: 200, sVol: 0.14, cFreq: 75,  cEnd: 30  }
+    };
+    const p = profiles[tone] || profiles.crisp;
+    // Layer 1 — high noise burst
+    this._noise(0.08, 'bandpass', p.nFreq,   p.nFreqEnd, p.nVol);
+    // Layer 2 — tonal component
+    this._sine(p.sFreq, p.sEnd, 0.12, p.sVol);
+    // Layer 3 — low crunch thump
+    this._tone(p.cFreq, p.cEnd, 0.10, 0.35, 'triangle');
+  }
+
+  /**
+   * bigCrack(tone) — Big, satisfying wax crack.
+   * Longer duration, wider frequency sweep, extra rumble layer.
+   */
+  bigCrack(tone = 'crisp') {
+    if (!this._ready) return;
+    const ctx = this.ctx;
+    const t   = ctx.currentTime;
+    // Three rapid sequential noise bursts to simulate a deep crack
+    const offsets = [0, 0.04, 0.09];
+    offsets.forEach((off, i) => {
+      setTimeout(() => this.crack(tone), off * 1000);
+    });
+    // Extra sub-bass drop
+    this._tone(120, 30, 0.25, 0.50, 'sine');
+    // Hiss tail
+    this._noise(0.35, 'highpass', 5000, 2000, 0.18);
+  }
+
+  /**
+   * squelch() — Wet squelch sound for pressing/squishing.
+   * 2 noise layers (wet bandpass) + low sine wobble.
+   */
+  squelch() {
+    if (!this._ready) return;
+    this._noise(0.18, 'bandpass', 900,  200,  0.50);   // wet body
+    this._noise(0.12, 'lowpass',  400,  80,   0.35);   // low squish
+    this._tone(140,   60,  0.22, 0.28, 'sine');        // body thud
+  }
+
+  /**
+   * stretch(duration) — Stretchy taffy/slime sound.
+   * Rising-then-falling frequency creates stretching effect.
+   */
+  stretch(duration = 0.5) {
+    if (!this._ready) return;
+    const ctx = this.ctx;
+    const t   = ctx.currentTime;
+    const mid = duration * 0.55;
+
+    // Layer 1 — rise and fall noise
+    const src = ctx.createBufferSource();
+    src.buffer = this._noiseBuffer;
+    src.loop   = true;
+    const filt = ctx.createBiquadFilter();
+    filt.type  = 'bandpass';
+    filt.frequency.setValueAtTime(300, t);
+    filt.frequency.linearRampToValueAtTime(1800, t + mid);
+    filt.frequency.linearRampToValueAtTime(200,  t + duration);
+    filt.Q.value = 3.0;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.001, t);
+    g.gain.linearRampToValueAtTime(0.45, t + 0.05);
+    g.gain.setValueAtTime(0.45,  t + duration - 0.08);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+    src.connect(filt); filt.connect(g); g.connect(this._compressor);
+    src.start(t); src.stop(t + duration + 0.05);
+
+    // Layer 2 — creaky sine
+    this._sine(200, 900, duration * 0.6, 0.18);
+    this._sine(900, 120, duration * 0.5, 0.14);
+  }
+
+  /**
+   * pop() — Snap-back pop at end of stretch.
+   */
+  pop() {
+    if (!this._ready) return;
+    this._tone(800, 200, 0.06, 0.55, 'sine');          // bright ping
+    this._noise(0.05, 'highpass', 6000, 3000, 0.40);   // air snap
+    this._tone(120,  40,  0.10, 0.38, 'triangle');     // low body
+  }
+
+  /**
+   * foam() — Soft foam compression sound (squishy).
+   */
+  foam() {
+    if (!this._ready) return;
+    this._noise(0.25, 'lowpass', 600, 80, 0.38);       // muffled compression
+    this._noise(0.12, 'bandpass', 300, 120, 0.22);     // mid texture
+    this._tone(90, 40, 0.20, 0.30, 'sine');            // soft thud
+  }
+
+  /**
+   * meshCreak() — Mesh/netting stretching creak.
+   */
+  meshCreak() {
+    if (!this._ready) return;
+    this._noise(0.20, 'bandpass', 2000, 500, 0.30);    // mesh fibres
+    this._tone(320, 180, 0.18, 0.20, 'sawtooth');      // creak tone
+    this._noise(0.10, 'highpass', 4000, 2000, 0.15);   // high crinkle
+  }
+
+  /**
+   * bubble() — Soft bubble pop.
+   */
+  bubble() {
+    if (!this._ready) return;
+    this._tone(520, 260, 0.08, 0.40, 'sine');          // bubble ping
+    this._noise(0.06, 'bandpass', 1800, 600, 0.22);    // burst hiss
+    this._tone(200, 80,  0.10, 0.18, 'triangle');      // low body
+  }
+
+  /**
+   * stir() — Mixing / stirring loop.
+   */
+  stir() {
+    if (!this._ready) return;
+    const ctx = this.ctx;
+    const t   = ctx.currentTime;
+    // Rhythmic noise swipes
+    for (let i = 0; i < 4; i++) {
+      const off = i * 0.09;
+      const src = ctx.createBufferSource();
+      src.buffer = this._noiseBuffer;
+      src.loop   = true;
+      const filt = ctx.createBiquadFilter();
+      filt.type  = 'bandpass';
+      filt.frequency.value = 600 + i * 150;
+      filt.Q.value = 2.0;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t + off);
+      g.gain.linearRampToValueAtTime(0.28, t + off + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + off + 0.10);
+      src.connect(filt); filt.connect(g); g.connect(this._compressor);
+      src.start(t + off); src.stop(t + off + 0.15);
+    }
+    this._tone(180, 90, 0.36, 0.15, 'sine');
+  }
+
+  /**
+   * drip() — Liquid drip sound.
+   */
+  drip() {
+    if (!this._ready) return;
+    this._tone(800, 320, 0.12, 0.45, 'sine');          // drip ping
+    this._tone(320, 80,  0.18, 0.22, 'sine');          // resonance
+    this._noise(0.04, 'bandpass', 2000, 800, 0.18);    // impact splash
+  }
+
+  /**
+   * celebrate() — Victory jingle (ascending arpeggio).
+   */
+  celebrate() {
+    if (!this._ready) return;
+    const ctx    = this.ctx;
+    const t      = ctx.currentTime;
+    const notes  = [523, 659, 784, 1047, 1319]; // C5 E5 G5 C6 E6
+    notes.forEach((freq, i) => {
+      const off  = i * 0.10;
+      const osc  = ctx.createOscillator();
+      osc.type   = 'sine';
+      osc.frequency.value = freq;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t + off);
+      g.gain.linearRampToValueAtTime(0.35, t + off + 0.015);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + off + 0.25);
+      osc.connect(g); g.connect(this._compressor);
+      osc.start(t + off); osc.stop(t + off + 0.30);
+      // Harmonic layer
+      const osc2  = ctx.createOscillator();
+      osc2.type   = 'triangle';
+      osc2.frequency.value = freq * 1.5;
+      const g2 = ctx.createGain();
+      g2.gain.setValueAtTime(0.0001, t + off);
+      g2.gain.linearRampToValueAtTime(0.12, t + off + 0.015);
+      g2.gain.exponentialRampToValueAtTime(0.0001, t + off + 0.20);
+      osc2.connect(g2); g2.connect(this._compressor);
+      osc2.start(t + off); osc2.stop(t + off + 0.25);
+    });
+    // Sparkle noise tail
+    setTimeout(() => this._noise(0.30, 'highpass', 8000, 4000, 0.14), 480);
+  }
+
+  /**
+   * addIngredient() — Sound for adding an ingredient.
+   * Cheerful double-blip with a soft whoosh.
+   */
+  addIngredient() {
+    if (!this._ready) return;
+    const ctx = this.ctx;
+    const t   = ctx.currentTime;
+    // Whoosh
+    this._noise(0.18, 'bandpass', 1500, 300, 0.28);
+    // First blip
+    this._tone(660, 880, 0.10, 0.35, 'sine');
+    // Second blip (slightly delayed)
+    setTimeout(() => this._tone(880, 1100, 0.10, 0.30, 'sine'), 110);
+    // Soft low confirmation thud
+    this._tone(160, 80, 0.12, 0.22, 'triangle');
+  }
+
+  // ── Convenience: ensure init on first call ───────────────
+  _ensureInit() { if (!this._ready) this.init(); }
+
+  /**
+   * play(name) — Universal sound dispatcher.
+   * Maps semantic names to the specific sound methods.
+   */
+  play(name) {
+    this._ensureInit();
+    if (!this._ready) return;
+    switch (name) {
+      case 'select':      this.bubble(); break;
+      case 'step':        this.addIngredient(); break;
+      case 'complete':    this.celebrate(); break;
+      case 'crack':       this.crack(); break;
+      case 'bigcrack':    this.bigCrack(); break;
+      case 'squeeze':     this.squelch(); break;
+      case 'stretch':     this.stretch(); break;
+      case 'pop':         this.pop(); break;
+      case 'foam':        this.foam(); break;
+      case 'mesh':        this.meshCreak(); break;
+      case 'stir':        this.stir(); break;
+      case 'drip':        this.drip(); break;
+      case 'bubble':      this.bubble(); break;
+      default:            this.bubble(); break;
+    }
+  }
+}
+
+// ── Singleton instance ───────────────────────────────────────
+const audio = new AudioEngine();
+
+// Auto-init on first user gesture anywhere in the document
+['pointerdown', 'touchstart', 'keydown'].forEach(evt =>
+  document.addEventListener(evt, () => audio.init(), { once: true, passive: true })
+);
+
+
+// =============================================================================
+// PART 3 — PHYSICS CLASSES
+// Wakkuball App · JavaScript Physics Engine
+// Classes: WaxShell · SoftBody · ParticleSystem
+// =============================================================================
+
+// ---------------------------------------------------------------------------
+// CLASS 1: WaxShell
+// Simulates the hexagonal wax coating on a wakkuball.
+// The wax is modelled as a tight hex-cell grid clipped to a circle.
+// Each cell can crack and fall away when the user taps the ball.
+// ---------------------------------------------------------------------------
+class WaxShell {
+  /**
+   * @param {number} cx     – centre x of the ball
+   * @param {number} cy     – centre y of the ball
+   * @param {number} radius – radius of the ball
+   */
+  constructor(cx, cy, radius, colors) {
+    this.cx     = cx;
+    this.cy     = cy;
+    this.radius = radius;
+    this.colors = colors || ['#f5d76e', '#d4a017'];
+
+    this.cells       = [];   // active hex cells
+    this.cracks      = [];   // crack-line segments [{x1,y1,x2,y2,alpha}]
+    this.brokenCount = 0;    // how many cells have cracked so far
+
+    this._buildGrid();
+  }
+
+  // ── Grid construction ────────────────────────────────────────────────────
+
+  /** Populate this.cells with hexagonal tiles packed into the circle. */
+  _buildGrid() {
+    const r    = this.radius;
+    const size = r * 0.095;          // hex cell "radius" (flat-to-flat / 2)
+    const w    = size * 2;
+    const h    = Math.sqrt(3) * size;
+    const cols = Math.ceil((r * 2) / w)  + 2;
+    const rows = Math.ceil((r * 2) / h)  + 2;
+
+    for (let row = -rows; row <= rows; row++) {
+      for (let col = -cols; col <= cols; col++) {
+        // Offset every other column for hex packing
+        const x = this.cx + col * w * 0.75;
+        const y = this.cy + row * h + (col % 2 === 0 ? 0 : h * 0.5);
+
+        // Keep only cells whose centre lies within the ball circle
+        const dist = Math.hypot(x - this.cx, y - this.cy);
+        if (dist > r * 0.97) continue;
+
+        this.cells.push({
+          x,
+          y,
+          size,
+          vertices:   this._hexVertices(x, y, size),
+          crackLevel: 0,       // 0 = pristine, ≥1 = fallen
+          gone:       false,   // removed from shell
+          // Falling-physics state
+          falling:    false,
+          vx:         0,
+          vy:         0,
+          rotation:   0,
+          rotSpeed:   0,
+          alpha:      1,
+        });
+      }
+    }
+  }
+
+  /**
+   * Compute the 6 vertices of a flat-top hexagon.
+   * @returns {Array<{x,y}>}
+   */
+  _hexVertices(cx, cy, size) {
+    const verts = [];
+    for (let i = 0; i < 6; i++) {
+      const angle = (Math.PI / 3) * i;   // 0°, 60°, 120° …
+      verts.push({
+        x: cx + size * Math.cos(angle),
+        y: cy + size * Math.sin(angle),
+      });
+    }
+    return verts;
+  }
+
+  // ── Public API ───────────────────────────────────────────────────────────
+
+  /**
+   * Register a tap/click impact at (x, y).
+   * Cells close to the impact crack immediately; outer ring gets hairline cracks.
+   * @returns {number} count of newly broken cells
+   */
+  tap(x, y) {
+    const impactR = this.radius * 0.38;   // hard-crack zone
+    const outerR  = this.radius * 0.65;   // hairline zone
+
+    let newlyBroken = 0;
+
+    this.cells.forEach(cell => {
+      if (cell.gone) return;
+
+      const dist = Math.hypot(cell.x - x, cell.y - y);
+
+      if (dist < impactR) {
+        // Strong crack – may break immediately
+        cell.crackLevel += 1.8 * (1 - dist / impactR);
+      } else if (dist < outerR) {
+        // Hairline crack for atmosphere
+        cell.crackLevel += 0.35 * (1 - (dist - impactR) / (outerR - impactR));
+      }
+
+      // Once crack level crosses threshold the cell detaches and falls
+      if (cell.crackLevel >= 1 && !cell.falling) {
+        this._startFalling(cell, x, y);
+        newlyBroken++;
+        this.brokenCount++;
+      }
+    });
+
+    // Generate a few branching crack-line segments radiating from impact
+    this._addCrackLines(x, y, impactR);
+
+    return newlyBroken;
+  }
+
+  /**
+   * Kick a cell into falling-physics mode.
+   * Direction is away from impact point with a little randomness.
+   */
+  _startFalling(cell, impactX, impactY) {
+    cell.falling  = true;
+    cell.gone     = false;   // still drawn until fully faded
+
+    const angle   = Math.atan2(cell.y - impactY, cell.x - impactX);
+    const speed   = 1.5 + Math.random() * 3;
+
+    cell.vx       = Math.cos(angle) * speed + (Math.random() - 0.5) * 2;
+    cell.vy       = Math.sin(angle) * speed - Math.random() * 2;   // slight upward kick
+    cell.rotSpeed = (Math.random() - 0.5) * 0.25;
+    cell.rotation = 0;
+    cell.alpha    = 1;
+  }
+
+  /**
+   * Add a burst of branching crack-line segments around an impact point.
+   * Lines fade over time via their alpha value.
+   */
+  _addCrackLines(ox, oy, radius) {
+    const branches = 5 + Math.floor(Math.random() * 4);   // 5-8 main cracks
+
+    for (let b = 0; b < branches; b++) {
+      let angle  = (b / branches) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+      let length = radius * (0.6 + Math.random() * 0.8);
+      let x      = ox;
+      let y      = oy;
+      const segs = 3 + Math.floor(Math.random() * 3);   // segments per branch
+
+      for (let s = 0; s < segs; s++) {
+        const segLen = (length / segs) * (0.7 + Math.random() * 0.6);
+        const x2     = x + Math.cos(angle) * segLen;
+        const y2     = y + Math.sin(angle) * segLen;
+
+        this.cracks.push({ x1: x, y1: y, x2, y2, alpha: 0.9 });
+
+        // Small random deflection per segment for organic look
+        angle += (Math.random() - 0.5) * 0.55;
+        x      = x2;
+        y      = y2;
+      }
+    }
+  }
+
+  /** Step the physics simulation one frame forward. */
+  update() {
+    const gravity = 0.18;
+
+    this.cells.forEach(cell => {
+      if (!cell.falling || cell.gone) return;
+
+      // Apply gravity and move
+      cell.vy       += gravity;
+      cell.x        += cell.vx;
+      cell.y        += cell.vy;
+      cell.rotation += cell.rotSpeed;
+
+      // Fade out after leaving the ball area
+      const dist = Math.hypot(cell.x - this.cx, cell.y - this.cy);
+      if (dist > this.radius * 0.6) {
+        cell.alpha -= 0.022;
+      }
+
+      if (cell.alpha <= 0) {
+        cell.alpha = 0;
+        cell.gone  = true;
+      }
+    });
+
+    // Fade crack lines
+    this.cracks.forEach(c => { c.alpha -= 0.004; });
+    this.cracks = this.cracks.filter(c => c.alpha > 0);
+  }
+
+  /**
+   * Draw the wax shell onto a canvas 2D context.
+   * @param {CanvasRenderingContext2D} ctx
+   */
+  draw(ctx) {
+    // ── Draw intact cells ──────────────────────────────────────────────────
+    this.cells.forEach(cell => {
+      if (cell.gone) return;
+
+      ctx.save();
+
+      if (cell.falling) {
+        // Translate to cell centre, rotate, then draw relative to origin
+        ctx.translate(cell.x, cell.y);
+        ctx.rotate(cell.rotation);
+        ctx.globalAlpha = Math.max(0, cell.alpha);
+
+        ctx.beginPath();
+        const verts = this._hexVertices(0, 0, cell.size * 0.95);
+        ctx.moveTo(verts[0].x, verts[0].y);
+        for (let i = 1; i < verts.length; i++) ctx.lineTo(verts[i].x, verts[i].y);
+        ctx.closePath();
+      } else {
+        // Static cell – draw crack tint proportional to crackLevel
+        ctx.translate(cell.x, cell.y);
+        ctx.globalAlpha = 1;
+
+        ctx.beginPath();
+        const verts = this._hexVertices(0, 0, cell.size * 0.95);
+        ctx.moveTo(verts[0].x, verts[0].y);
+        for (let i = 1; i < verts.length; i++) ctx.lineTo(verts[i].x, verts[i].y);
+        ctx.closePath();
+      }
+
+      // Wax colour – slightly yellowish, with crack darkening
+      const crack  = Math.min(cell.crackLevel, 1);
+      const lum    = Math.round(235 - crack * 60);
+      ctx.fillStyle   = `rgb(${lum + 10},${lum + 5},${lum - 10})`;
+      ctx.strokeStyle = `rgba(100,80,40,${0.25 + crack * 0.4})`;
+      ctx.lineWidth   = 0.5;
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.restore();
+    });
+
+    // ── Draw crack lines ───────────────────────────────────────────────────
+    ctx.save();
+    ctx.strokeStyle = '#4a2f0a';
+    ctx.lineWidth   = 0.8;
+    this.cracks.forEach(c => {
+      ctx.globalAlpha = Math.max(0, c.alpha);
+      ctx.beginPath();
+      ctx.moveTo(c.x1, c.y1);
+      ctx.lineTo(c.x2, c.y2);
+      ctx.stroke();
+    });
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
+  /** Return completion ratio 0‑1 (fraction of cells that have cracked). */
+  progress() {
+    const total = this.cells.length;
+    if (total === 0) return 1;
+    const cracked = this.cells.filter(c => c.crackLevel >= 1).length;
+    return cracked / total;
+  }
+
+  /** True once 90 % or more of the shell has cracked away. */
+  done() {
+    return this.progress() >= 0.90;
+  }
+
+  /**
+   * Shatter all remaining intact cells outward simultaneously.
+   * Call this when a final big tap or time-limit is reached.
+   */
+  shatter() {
+    this.cells.forEach(cell => {
+      if (!cell.falling && !cell.gone) {
+        this._startFalling(cell, this.cx, this.cy);
+        cell.crackLevel = 1;
+        this.brokenCount++;
+      }
+    });
+    // Clear crack lines – the explosion speaks for itself
+    this.cracks = [];
+  }
+}
+
+
+// ---------------------------------------------------------------------------
+// CLASS 2: SoftBody
+// A spring-mass deformable body used for every toy type.
+// N perimeter control points are connected to their rest positions and to
+// their neighbours via Hooke's law springs.  Touch input pushes or pulls
+// the nearest points.
+// ---------------------------------------------------------------------------
+class SoftBody {
+  /**
+   * @param {number} cx         – rest centre x
+   * @param {number} cy         – rest centre y
+   * @param {number} radius     – rest radius
+   * @param {number} pointCount – number of perimeter control points (12‑32)
+   * @param {number} bounce     – spring stiffness  (0.05 – 0.35)
+   * @param {number} damping    – velocity damping  (0.70 – 0.98)
+   * @param {string} type       – 'wakkuball' | 'squishy' | 'mallangi' | 'slime'
+   */
+  constructor(cx, cy, radius, pointCount, bounce, damping, type = 'wakkuball', shape = 'blob') {
+    this.cx         = cx;
+    this.cy         = cy;
+    this.radius     = radius;
+    this.pointCount = pointCount;
+    this.bounce     = bounce;
+    this.damping    = damping;
+    this.type       = type;
+    this.shape      = shape;
+
+    this.points     = [];   // perimeter spring-mass points
+    this.mesh       = [];   // internal mesh nodes (wakkuball only)
+    this.bulges     = [];   // current mesh-bulge state
+
+    // Touch state
+    this._touch     = null;   // {x, y, px, py, active}
+
+    // Pressure & stretch state (used by renderers)
+    this.pressure   = 0;      // 0‥1 — how hard the user is pressing
+    this.stretchY   = 1;      // vertical stretch factor
+
+    // Type-specific overrides
+    this._applyTypeDefaults();
+
+    this._buildPoints();
+    this._applyShapeToPoints();
+    if (this.type === 'wakkuball') this._buildMesh();
+  }
+
+  // ── Type defaults ────────────────────────────────────────────────────────
+
+  _applyTypeDefaults() {
+    switch (this.type) {
+      case 'squishy':
+        // Memory-foam: very slow spring-back, high damping
+        this.bounce  = 0.04;
+        this.damping = 0.96;
+        break;
+      case 'mallangi':
+        // Elastic balloon: fast snap-back, low damping (wobbles a lot)
+        this.bounce  = 0.28;
+        this.damping = 0.72;
+        break;
+      case 'slime':
+        // Viscous flow: minimal spring, almost no restoration
+        this.bounce  = 0.015;
+        this.damping = 0.88;
+        break;
+      case 'wakkuball':
+      default:
+        // Standard rubbery ball
+        this.bounce  = this.bounce  || 0.18;
+        this.damping = this.damping || 0.82;
+    }
+  }
+
+  // ── Construction ─────────────────────────────────────────────────────────
+
+  /** Place N equally-spaced points around the perimeter circle. */
+  _buildPoints() {
+    for (let i = 0; i < this.pointCount; i++) {
+      const angle = (i / this.pointCount) * Math.PI * 2;
+      const bx    = this.cx + this.radius * Math.cos(angle);
+      const by    = this.cy + this.radius * Math.sin(angle);
+      this.points.push({
+        x:    bx,
+        y:    by,
+        baseX: bx,
+        baseY: by,
+        vx:   0,
+        vy:   0,
+        angle,            // cached for convenience
+      });
+    }
+  }
+
+  /**
+   * Adjust rest positions of perimeter points to match a fruit silhouette.
+   * Called once after _buildPoints(). Modifies baseX/baseY/x/y in place.
+   */
+  _applyShapeToPoints() {
+    if (!this.shape || this.shape === 'blob') return;
+    const cx = this.cx, cy = this.cy, r = this.radius;
+
+    this.points.forEach(p => {
+      const a = p.angle;   // cached angle from _buildPoints
+      let newX = p.baseX;
+      let newY = p.baseY;
+
+      switch (this.shape) {
+        case 'apple': {
+          // sin(a) = -1 at top, +1 at bottom (canvas y-axis flipped for intuition)
+          const sinFactor = Math.sin(a);   // -1 top, +1 bottom
+          let scale;
+          if (sinFactor < 0) {
+            // Top: indent inward
+            scale = 1.0 + sinFactor * 0.15;   // at top: 0.85
+          } else {
+            // Bottom: widen slightly
+            scale = 1.0 + sinFactor * 0.10;   // at bottom: 1.10
+          }
+          newX = cx + (p.baseX - cx) * scale;
+          newY = cy + (p.baseY - cy) * scale;
+          break;
+        }
+        case 'peach': {
+          const sinFactor = Math.sin(a);
+          let scale;
+          if (sinFactor < 0) {
+            scale = 1.0 + sinFactor * 0.12;
+          } else {
+            scale = 1.0 + sinFactor * 0.12;
+          }
+          newX = cx + (p.baseX - cx) * scale;
+          newY = cy + (p.baseY - cy) * scale;
+          break;
+        }
+        case 'strawberry': {
+          // Wider at top, narrower at bottom
+          const sinFactor = Math.sin(a);   // -1 top, +1 bottom
+          const scale = 1.0 - sinFactor * 0.18;  // top: 1.18, bottom: 0.82
+          newX = cx + (p.baseX - cx) * scale;
+          newY = cy + (p.baseY - cy) * scale;
+          break;
+        }
+        case 'lemon': {
+          // Horizontal oval with pointed left/right ends
+          newX = cx + Math.cos(a) * r * 1.30;
+          newY = cy + Math.sin(a) * r * 0.78;
+          break;
+        }
+        case 'grape': {
+          // Three visible bumps: lower-left, lower-right, top
+          const bumpAngles = [Math.PI * 7/6, Math.PI * 11/6, -Math.PI / 2];
+          let maxBump = 0;
+          bumpAngles.forEach(ba => {
+            let diff = a - ba;
+            while (diff >  Math.PI) diff -= 2 * Math.PI;
+            while (diff < -Math.PI) diff += 2 * Math.PI;
+            const d = Math.abs(diff);
+            if (d < 0.85) maxBump = Math.max(maxBump, 0.16 * (1 - d / 0.85));
+          });
+          const scale = 1.0 + maxBump;
+          newX = cx + (p.baseX - cx) * scale;
+          newY = cy + (p.baseY - cy) * scale;
+          break;
+        }
+        default:
+          break;
+      }
+
+      p.baseX = newX;
+      p.baseY = newY;
+      p.x     = newX;
+      p.y     = newY;
+    });
+  }
+
+  /**
+   * Build a coarse interior mesh grid for the wakkuball.
+   * Mesh nodes are used to compute bulge positions.
+   */
+  _buildMesh() {
+    const step = this.radius * 0.28;   // spacing between mesh nodes
+
+    for (let row = -this.radius; row <= this.radius; row += step) {
+      for (let col = -this.radius; col <= this.radius; col += step) {
+        const dist = Math.hypot(col, row);
+        if (dist > this.radius * 0.82) continue;   // inside only
+
+        this.mesh.push({
+          lx:       col,               // local coords relative to centre
+          ly:       row,
+          pressure: 0,                 // current outward pressure
+          bulging:  false,
+        });
+      }
+    }
+  }
+
+  // ── Touch interaction ────────────────────────────────────────────────────
+
+  /** Begin a touch/mouse interaction. */
+  pointerDown(x, y) {
+    this._touch = { x, y, px: x, py: y, active: true };
+    this.pressure = 1;
+  }
+
+  /** Update touch position and apply drag forces this frame. */
+  pointerMove(x, y) {
+    if (!this._touch) return;
+    this._touch.px = this._touch.x;
+    this._touch.py = this._touch.y;
+    this._touch.x  = x;
+    this._touch.y  = y;
+  }
+
+  /** Release touch. */
+  pointerUp() {
+    if (this._touch) this._touch.active = false;
+    this._touch = null;
+  }
+
+  // ── Simulation ───────────────────────────────────────────────────────────
+
+  /** Advance physics one frame. Call once per animation frame. */
+  update() {
+    const gravity      = this.type === 'slime' ? 0.06 : 0;   // slime sags
+    const neighbourK   = this.bounce * 0.45;   // neighbour spring stiffness
+    const n            = this.points.length;
+
+    // ── 1. Touch / push forces ─────────────────────────────────────────────
+    if (this._touch && this._touch.active) {
+      const tx        = this._touch.x;
+      const ty        = this._touch.y;
+      const touchR    = this.radius * 0.45;   // influence radius
+      const pushForce = this.type === 'mallangi' ? 8 : 5;
+
+      this.points.forEach(p => {
+        const dist = Math.hypot(p.x - tx, p.y - ty);
+        if (dist < touchR && dist > 0.1) {
+          // Push outward from touch point
+          const strength = (1 - dist / touchR) * pushForce;
+          const nx       = (p.x - tx) / dist;
+          const ny       = (p.y - ty) / dist;
+          p.vx          += nx * strength;
+          p.vy          += ny * strength;
+        }
+      });
+
+      // Slime: drag the nearest point toward touch
+      if (this.type === 'slime') {
+        let nearest = null, bestD = Infinity;
+        this.points.forEach(p => {
+          const d = Math.hypot(p.x - tx, p.y - ty);
+          if (d < bestD) { bestD = d; nearest = p; }
+        });
+        if (nearest) {
+          nearest.vx += (tx - nearest.x) * 0.12;
+          nearest.vy += (ty - nearest.y) * 0.12;
+        }
+      }
+    }
+
+    // ── 2. Spring-to-rest and neighbour springs ────────────────────────────
+    this.points.forEach((p, i) => {
+      // Restoration spring toward base position
+      const dx = p.baseX - p.x;
+      const dy = p.baseY - p.y;
+      p.vx += dx * this.bounce;
+      p.vy += dy * this.bounce;
+
+      // Neighbour spring – keeps perimeter smooth
+      const prev = this.points[(i - 1 + n) % n];
+      const next = this.points[(i + 1)     % n];
+
+      [prev, next].forEach(nb => {
+        const ndx = nb.x - p.x;
+        const ndy = nb.y - p.y;
+        const len = Math.hypot(ndx, ndy) || 0.001;
+        // Natural length = distance between base positions
+        const bdx    = nb.baseX - p.baseX;
+        const bdy    = nb.baseY - p.baseY;
+        const natural = Math.hypot(bdx, bdy);
+        const stretch = (len - natural) / natural;
+        p.vx += (ndx / len) * stretch * neighbourK * natural;
+        p.vy += (ndy / len) * stretch * neighbourK * natural;
+      });
+
+      // Gravity
+      p.vy += gravity;
+
+      // Mallangi: clamp max displacement to 2× radius (elastic limit)
+      if (this.type === 'mallangi') {
+        const disp = Math.hypot(p.x - p.baseX, p.y - p.baseY);
+        if (disp > this.radius * 2) {
+          const ratio = (this.radius * 2) / disp;
+          p.x = p.baseX + (p.x - p.baseX) * ratio;
+          p.y = p.baseY + (p.y - p.baseY) * ratio;
+          // Snap-back boost
+          p.vx += (p.baseX - p.x) * 0.35;
+          p.vy += (p.baseY - p.y) * 0.35;
+        }
+      }
+
+      // Damping
+      p.vx *= this.damping;
+      p.vy *= this.damping;
+
+      // Integrate
+      p.x += p.vx;
+      p.y += p.vy;
+    });
+
+    // ── 3. Pressure decay & stretch calculation ──────────────────────────
+    if (!this._touch || !this._touch.active) {
+      this.pressure *= 0.92;
+      if (this.pressure < 0.01) this.pressure = 0;
+    }
+
+    // Compute vertical stretch factor from point deformation
+    let minY = Infinity, maxY = -Infinity;
+    this.points.forEach(p => { if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y; });
+    const restH = this.radius * 2;
+    this.stretchY = restH > 0 ? (maxY - minY) / restH : 1;
+
+    // ── 4. Wakkuball mesh-bulge calculation ────────────────────────────────
+    if (this.type === 'wakkuball') {
+      this._updateMeshBulges();
+    }
+  }
+
+  // ── Wakkuball mesh bulge ──────────────────────────────────────────────────
+
+  /**
+   * Compute how much each interior mesh node is being pushed outward.
+   * The inner filling acts like an incompressible fluid: when the shell
+   * is squeezed inward at the touch point, pressure increases and the
+   * filling bulges outward at nearby mesh holes.
+   */
+  _updateMeshBulges() {
+    if (!this._touch) {
+      // Decay all bulges when not touching
+      this.mesh.forEach(node => {
+        node.pressure *= 0.88;
+        node.bulging   = node.pressure > 0.08;
+      });
+      this.bulges = this.mesh
+        .filter(n => n.bulging)
+        .map(n => ({
+          x:        this.cx + n.lx,
+          y:        this.cy + n.ly,
+          size:     this.radius * 0.09 * n.pressure,
+          pressure: n.pressure,
+        }));
+      return;
+    }
+
+    const tx         = this._touch.x;
+    const ty         = this._touch.y;
+    const touchLocal = { x: tx - this.cx, y: ty - this.cy };
+    const touchDist  = Math.hypot(touchLocal.x, touchLocal.y);
+
+    // Inward squeeze depth (0 = no squeeze, 1 = max squeeze)
+    const squeeze = Math.max(0, 1 - touchDist / this.radius);
+
+    this.mesh.forEach(node => {
+      // Distance from this mesh node to the touch (local coords)
+      const dx  = node.lx - touchLocal.x;
+      const dy  = node.ly - touchLocal.y;
+      const d   = Math.hypot(dx, dy);
+
+      // Pressure is highest opposite to the touch point
+      const oppAngle   = Math.atan2(-touchLocal.y, -touchLocal.x);
+      const nodeAngle  = Math.atan2(node.ly, node.lx);
+      let   angleDiff  = Math.abs(oppAngle - nodeAngle);
+      if (angleDiff > Math.PI) angleDiff = Math.PI * 2 - angleDiff;
+      const angleBonus = Math.max(0, 1 - angleDiff / Math.PI);
+
+      const targetPressure = squeeze * angleBonus * (1 - d / (this.radius * 1.5)) * 1.4;
+      // Smooth pressure transitions
+      node.pressure    = node.pressure * 0.7 + Math.max(0, targetPressure) * 0.3;
+      node.bulging     = node.pressure > 0.10;
+    });
+
+    // Export bulge list for the renderer
+    this.bulges = this.mesh
+      .filter(n => n.bulging)
+      .map(n => ({
+        x:        this.cx + n.lx,
+        y:        this.cy + n.ly,
+        size:     this.radius * 0.12 * Math.min(n.pressure, 1),
+        pressure: n.pressure,
+      }));
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
+  /** Return the current centre of mass of all perimeter points. */
+  center() {
+    let sx = 0, sy = 0;
+    this.points.forEach(p => { sx += p.x; sy += p.y; });
+    return { x: sx / this.points.length, y: sy / this.points.length };
+  }
+
+  /**
+   * Point-in-polygon test for the deformed perimeter.
+   * Uses the ray-casting algorithm.
+   * @returns {boolean}
+   */
+  isInside(x, y) {
+    const pts = this.points;
+    const n   = pts.length;
+    let   inside = false;
+
+    for (let i = 0, j = n - 1; i < n; j = i++) {
+      const xi = pts[i].x, yi = pts[i].y;
+      const xj = pts[j].x, yj = pts[j].y;
+      const intersect =
+        ((yi > y) !== (yj > y)) &&
+        (x < ((xj - xi) * (y - yi)) / (yj - yi) + xi);
+      if (intersect) inside = !inside;
+    }
+    return inside;
+  }
+
+  /**
+   * Return the current list of mesh bulge descriptors.
+   * Each entry: { x, y, size, pressure }
+   * Only meaningful for type === 'wakkuball'.
+   */
+  getMeshBulges() {
+    return this.bulges;
+  }
+
+  /**
+   * Build a smooth closed path through the perimeter points.
+   * Caller can use this to stroke/fill the soft body shape.
+   * @param {CanvasRenderingContext2D} ctx
+   */
+  buildPath(ctx) {
+    const pts = this.points;
+    const n   = pts.length;
+    ctx.beginPath();
+    // Catmull-Rom spline through the points for a smooth silhouette
+    for (let i = 0; i < n; i++) {
+      const p0 = pts[(i - 1 + n) % n];
+      const p1 = pts[i];
+      const p2 = pts[(i + 1)     % n];
+      const p3 = pts[(i + 2)     % n];
+
+      if (i === 0) ctx.moveTo(p1.x, p1.y);
+
+      // Catmull-Rom → Bezier conversion (tension = 0.5)
+      const cp1x = p1.x + (p2.x - p0.x) / 6;
+      const cp1y = p1.y + (p2.y - p0.y) / 6;
+      const cp2x = p2.x - (p3.x - p1.x) / 6;
+      const cp2y = p2.y - (p3.y - p1.y) / 6;
+      ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
+    }
+    ctx.closePath();
+  }
+}
+
+
+// ---------------------------------------------------------------------------
+// CLASS 3: ParticleSystem
+// Object-pooled particle emitter for celebration and impact effects.
+// Supports four visual particle types: circle, rect (confetti), star, sparkle.
+// ---------------------------------------------------------------------------
+class ParticleSystem {
+  constructor() {
+    this.particles = [];   // currently live particles
+    this.pool      = [];   // recycled particle objects ready for reuse
+  }
+
+  // ── Particle factory ──────────────────────────────────────────────────────
+
+  /** Retrieve a recycled particle from the pool, or create a fresh one. */
+  _acquire() {
+    return this.pool.length > 0 ? this.pool.pop() : {};
+  }
+
+  /** Return a dead particle to the pool for later reuse. */
+  _release(p) {
+    this.pool.push(p);
+  }
+
+  // ── Emission ──────────────────────────────────────────────────────────────
+
+  /**
+   * Emit a burst of particles at (x, y).
+   *
+   * @param {number} x
+   * @param {number} y
+   * @param {number} count  – number of particles to spawn
+   * @param {Object} config
+   *   @param {string|string[]} config.color   – CSS colour or array of colours
+   *   @param {number}          config.size    – base particle size (px)
+   *   @param {number}          config.speed   – base launch speed
+   *   @param {number}          config.life    – lifetime in frames (e.g. 60)
+   *   @param {string}          config.type    – 'circle'|'rect'|'star'|'sparkle'
+   *   @param {number}          config.spread  – angle spread in radians (default 2π)
+   *   @param {number}         [config.angle]  – base launch angle (default up)
+   *   @param {number}         [config.gravity] – per-frame gravity (default 0.15)
+   */
+  emit(x, y, count, config = {}) {
+    const {
+      color   = '#ffffff',
+      size    = 6,
+      speed   = 4,
+      life    = 60,
+      type    = 'circle',
+      spread  = Math.PI * 2,
+      angle   = -Math.PI / 2,   // straight up by default
+      gravity = 0.15,
+    } = config;
+
+    const colors = Array.isArray(color) ? color : [color];
+
+    for (let i = 0; i < count; i++) {
+      const p     = this._acquire();
+      const theta = angle + (Math.random() - 0.5) * spread;
+      const spd   = speed * (0.5 + Math.random() * 0.8);
+
+      p.x        = x;
+      p.y        = y;
+      p.vx       = Math.cos(theta) * spd;
+      p.vy       = Math.sin(theta) * spd;
+      p.life     = life;
+      p.maxLife  = life;
+      p.size     = size * (0.6 + Math.random() * 0.8);
+      p.color    = colors[Math.floor(Math.random() * colors.length)];
+      p.type     = type;
+      p.gravity  = gravity;
+      p.rotation = Math.random() * Math.PI * 2;   // for rect / star
+      p.rotSpeed = (Math.random() - 0.5) * 0.18;
+      p.alive    = true;
+
+      // Extra state for sparkle twinkle
+      p.twinkle  = type === 'sparkle' ? Math.random() * Math.PI * 2 : 0;
+
+      this.particles.push(p);
+    }
+  }
+
+  // ── Simulation step ───────────────────────────────────────────────────────
+
+  /** Advance all live particles by one frame. */
+  update() {
+    for (let i = this.particles.length - 1; i >= 0; i--) {
+      const p = this.particles[i];
+
+      p.vy       += p.gravity;
+      p.x        += p.vx;
+      p.y        += p.vy;
+      p.rotation += p.rotSpeed;
+      p.vx       *= 0.98;          // slight air resistance
+      p.life--;
+      p.twinkle  += 0.18;
+
+      if (p.life <= 0) {
+        p.alive = false;
+        this.particles.splice(i, 1);
+        this._release(p);
+      }
+    }
+  }
+
+  // ── Rendering ─────────────────────────────────────────────────────────────
+
+  /**
+   * Draw all live particles onto the given context.
+   * @param {CanvasRenderingContext2D} ctx
+   */
+  draw(ctx) {
+    this.particles.forEach(p => {
+      const t     = p.life / p.maxLife;           // 1 = fresh, 0 = expiring
+      const alpha = t < 0.25 ? t / 0.25 : 1;     // fade-out in last 25 % of life
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rotation);
+
+      switch (p.type) {
+        case 'circle':
+          this._drawCircle(ctx, p);
+          break;
+        case 'rect':
+          this._drawRect(ctx, p);
+          break;
+        case 'star':
+          this._drawStar(ctx, p);
+          break;
+        case 'sparkle':
+          this._drawSparkle(ctx, p, alpha);
+          break;
+        default:
+          this._drawCircle(ctx, p);
+      }
+
+      ctx.restore();
+    });
+  }
+
+  // ── Shape drawers ─────────────────────────────────────────────────────────
+
+  _drawCircle(ctx, p) {
+    ctx.beginPath();
+    ctx.arc(0, 0, p.size * 0.5, 0, Math.PI * 2);
+    ctx.fillStyle = p.color;
+    ctx.fill();
+  }
+
+  /** Confetti rectangle. */
+  _drawRect(ctx, p) {
+    const w = p.size;
+    const h = p.size * 0.45;
+    ctx.fillStyle = p.color;
+    ctx.fillRect(-w * 0.5, -h * 0.5, w, h);
+  }
+
+  /** 5-pointed star. */
+  _drawStar(ctx, p) {
+    const outer = p.size * 0.5;
+    const inner = outer * 0.42;
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const r     = i % 2 === 0 ? outer : inner;
+      const angle = (i / 10) * Math.PI * 2 - Math.PI / 2;
+      if (i === 0) ctx.moveTo(Math.cos(angle) * r, Math.sin(angle) * r);
+      else         ctx.lineTo(Math.cos(angle) * r, Math.sin(angle) * r);
+    }
+    ctx.closePath();
+    ctx.fillStyle = p.color;
+    ctx.fill();
+  }
+
+  /**
+   * Sparkle: four-pointed cross with a twinkle opacity pulse.
+   * Adds a bright white centre dot for the glint effect.
+   */
+  _drawSparkle(ctx, p, baseAlpha) {
+    const s       = p.size * 0.6;
+    const twinkle = 0.65 + 0.35 * Math.sin(p.twinkle);
+
+    ctx.globalAlpha = baseAlpha * twinkle;
+    ctx.strokeStyle = p.color;
+    ctx.lineWidth   = s * 0.3;
+    ctx.lineCap     = 'round';
+
+    // Horizontal arm
+    ctx.beginPath();
+    ctx.moveTo(-s, 0);
+    ctx.lineTo( s, 0);
+    ctx.stroke();
+
+    // Vertical arm
+    ctx.beginPath();
+    ctx.moveTo(0, -s);
+    ctx.lineTo(0,  s);
+    ctx.stroke();
+
+    // Bright centre glint
+    ctx.beginPath();
+    ctx.arc(0, 0, s * 0.22, 0, Math.PI * 2);
+    ctx.fillStyle   = '#ffffff';
+    ctx.globalAlpha = baseAlpha * twinkle * 0.9;
+    ctx.fill();
+  }
+
+  // ── Utility ───────────────────────────────────────────────────────────────
+
+  /** Immediately remove all live particles and return them to the pool. */
+  clear() {
+    this.particles.forEach(p => this._release(p));
+    this.particles = [];
+  }
+
+  /** Return the number of currently live particles. */
+  get count() {
+    return this.particles.length;
+  }
+}
+
+
+// ============================================================
+// PART 4 — APP CLASS & RENDERING
+// Assumes: AudioEngine, WaxShell, SoftBody, ParticleSystem,
+//          and global CATEGORIES[] are already defined.
+// ============================================================
+
+class App {
+  constructor() {
+    // ── Core systems ──────────────────────────────────────────
+    this.audio     = new AudioEngine();
+    this.particles = new ParticleSystem();
+
+    // ── Canvas setup ──────────────────────────────────────────
+    this.canvas = document.getElementById('gameCanvas');
+    this.ctx    = this.canvas.getContext('2d');
+    this.dpr    = Math.min(window.devicePixelRatio || 1, 3);
+    this._resizeCanvas();
+
+    // ── App state ─────────────────────────────────────────────
+    this.state    = 'home';   // home | variants | ingredients | making | playing
+    this.category = null;     // CATEGORIES[i]
+    this.variant  = null;     // category.variants[j]
+    this.wax      = null;     // WaxShell instance
+    this.body     = null;     // SoftBody instance
+
+    // ── Making-phase state ────────────────────────────────────
+    this.makeStep      = 0;
+    this.makeProgress  = 0;   // 0‥1
+    this.makeGesture   = false;
+    this.makeCelebrate = 0;   // countdown frames
+
+    // ── Playing-phase state ───────────────────────────────────
+    this.playPhase   = 0;     // wakkuball: 0=wax-crack, 1=mesh-squeeze
+    this.pressPoint  = null;  // {x,y} in canvas coords
+    this.pressActive = false;
+    this.dragPoints  = [];    // for stretch/swirl
+    this.swirl       = 0;     // cumulative swirl angle
+
+    // ── UI overlay elements ───────────────────────────────────
+    this._buildUI();
+
+    // ── Input events ──────────────────────────────────────────
+    this._bindEvents();
+
+    // ── Start loop ────────────────────────────────────────────
+    this._lastTime = performance.now();
+    this._loop();
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // CANVAS SIZING
+  // ──────────────────────────────────────────────────────────
+  _resizeCanvas() {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    this.canvas.width  = w * this.dpr;
+    this.canvas.height = h * this.dpr;
+    this.canvas.style.width  = w + 'px';
+    this.canvas.style.height = h + 'px';
+    this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    this.W = w;
+    this.H = h;
+    this.CX = w / 2;
+    this.CY = h / 2;
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // UI OVERLAY
+  // ──────────────────────────────────────────────────────────
+  _buildUI() {
+    this.ui = document.getElementById('ui');
+    this._showHome();
+  }
+
+  _clearUI() {
+    this.ui.innerHTML = '';
+  }
+
+  _showHome() {
+    this._clearUI();
+    const wrap = document.createElement('div');
+    wrap.className = 'home-grid';
+
+    CATEGORIES.forEach((cat, i) => {
+      const card = document.createElement('div');
+      card.className = 'cat-card';
+      card.style.animationDelay = (i * 0.08) + 's';
+      card.innerHTML = `
+        <div class="cat-preview" style="background:${cat.color}22;border-color:${cat.color}44">
+          <span class="cat-emoji">${cat.emoji}</span>
+        </div>
+        <div class="cat-name">${cat.name}</div>
+        <div class="cat-desc">${cat.desc}</div>
+        <div class="cat-badge" style="background:${cat.color}">${cat.badge}</div>
+      `;
+      card.addEventListener('click', () => this._selectCategory(cat));
+      wrap.appendChild(card);
+    });
+
+    this.ui.appendChild(wrap);
+    this.state = 'home';
+  }
+
+  _showVariants() {
+    this._clearUI();
+    const cat = this.category;
+
+    const header = document.createElement('div');
+    header.className = 'screen-header';
+    header.innerHTML = `
+      <button class="back-btn" id="backBtn">←</button>
+      <h2>${cat.emoji} ${cat.name}</h2>
+    `;
+    this.ui.appendChild(header);
+    document.getElementById('backBtn').addEventListener('click', () => this._showHome());
+
+    const scroll = document.createElement('div');
+    scroll.className = 'variant-scroll';
+
+    cat.variants.forEach((v, i) => {
+      const card = document.createElement('div');
+      card.className = 'variant-card';
+      card.style.animationDelay = (i * 0.06) + 's';
+
+      // Canvas-drawn fruit silhouette swatch
+      const swatchCanvas = document.createElement('canvas');
+      swatchCanvas.width  = 112;
+      swatchCanvas.height = 112;
+      swatchCanvas.style.cssText = 'width:56px;height:56px;margin-bottom:10px;filter:drop-shadow(0 4px 10px rgba(0,0,0,.35))';
+      const sc = swatchCanvas.getContext('2d');
+      this._drawVariantSwatch(sc, 56, 56, 46, v);
+      card.appendChild(swatchCanvas);
+
+      const emojiDiv = document.createElement('div');
+      emojiDiv.className   = 'variant-emoji';
+      emojiDiv.textContent = v.emoji;
+      card.appendChild(emojiDiv);
+
+      const nameDiv = document.createElement('div');
+      nameDiv.className   = 'variant-name';
+      nameDiv.textContent = v.name;
+      card.appendChild(nameDiv);
+
+      card.addEventListener('click', () => this._selectVariant(v));
+      scroll.appendChild(card);
+    });
+
+    this.ui.appendChild(scroll);
+    this.state = 'variants';
+  }
+
+  _showIngredients() {
+    this._clearUI();
+    const cat = this.category;
+    const v   = this.variant;
+
+    const header = document.createElement('div');
+    header.className = 'screen-header';
+    header.innerHTML = `
+      <button class="back-btn" id="backBtn2">←</button>
+      <h2>${v.emoji} ${v.name}</h2>
+    `;
+    this.ui.appendChild(header);
+    document.getElementById('backBtn2').addEventListener('click', () => this._showVariants());
+
+    const list = document.createElement('div');
+    list.className = 'ingredient-list';
+
+    (v.ingredients || cat.ingredients || []).forEach((ing, i) => {
+      const row = document.createElement('div');
+      row.className = 'ingredient-row';
+      row.style.animationDelay = (i * 0.1) + 's';
+      row.innerHTML = `
+        <span class="ing-emoji">${ing.emoji}</span>
+        <div class="ing-info">
+          <div class="ing-name">${ing.name}</div>
+          <div class="ing-detail">${ing.desc || ing.detail || ''}</div>
+        </div>
+      `;
+      list.appendChild(row);
+    });
+
+    this.ui.appendChild(list);
+
+    const startBtn = document.createElement('button');
+    startBtn.className = 'start-btn';
+    startBtn.textContent = '만들기 시작! 🎉';
+    startBtn.addEventListener('click', () => this._startMaking());
+    this.ui.appendChild(startBtn);
+
+    this.state = 'ingredients';
+  }
+
+  _startMaking() {
+    this._clearUI();
+    this.state       = 'making';
+    this.makeStep    = 0;
+    this.makeProgress = 0;
+    this.makeGesture  = false;
+    this.makeCelebrate = 0;
+    this._buildMakeStep();
+  }
+
+  _buildMakeStep() {
+    this._clearUI();
+    const cat   = this.category;
+    const steps = cat.makeSteps || [];
+    if (this.makeStep >= steps.length) { this._finishMaking(); return; }
+
+    const step = steps[this.makeStep];
+    const infoDiv = document.createElement('div');
+    infoDiv.className = 'make-info';
+    infoDiv.innerHTML = `
+      <div class="make-step-label">STEP ${this.makeStep + 1} / ${steps.length}</div>
+      <div class="make-step-title">${step.emoji} ${step.title}</div>
+      <div class="make-step-hint">${step.hint}</div>
+    `;
+    this.ui.appendChild(infoDiv);
+
+    const bar = document.createElement('div');
+    bar.className  = 'progress-bar-bg';
+    bar.innerHTML  = '<div class="progress-bar-fill" id="progressFill"></div>';
+    this.ui.appendChild(bar);
+
+    this.makeGesture = true;
+    this._updateProgressBar();
+  }
+
+  _updateProgressBar() {
+    const fill = document.getElementById('progressFill');
+    if (fill) fill.style.setProperty('--progress', (this.makeProgress * 100) + '%');
+  }
+
+  _advanceMakeStep() {
+    this.makeStep++;
+    this.makeProgress = 0;
+    this.makeGesture  = false;
+    if (this.makeStep < (this.category.makeSteps || []).length) {
+      this.audio.play('step');
+      setTimeout(() => this._buildMakeStep(), 300);
+    } else {
+      this._finishMaking();
+    }
+  }
+
+  _finishMaking() {
+    this._clearUI();
+    this.makeCelebrate = 90;
+    this.audio.play('complete');
+    this.particles.emit(this.CX, this.CY * 0.7, 80, { color: ['#ff6eb4','#ffce54','#a29bfe','#55efc4'], speed: 6, life: 70, type: 'sparkle' });
+    setTimeout(() => this._startPlaying(), 2200);
+  }
+
+  _startPlaying() {
+    this._clearUI();
+    this.state     = 'playing';
+    this.playPhase = 0;
+
+    const cat = this.category;
+    const v   = this.variant;
+
+    // Wax shell only for wakkuball type
+    if (cat.id === 'wakkuball') {
+      this.wax = new WaxShell(
+        this.CX, this.CY,
+        Math.min(this.W, this.H) * 0.32,
+        [v.wax || '#f5d76e', v.waxDk || '#d4a017']
+      );
+    }
+
+    // SoftBody for all types
+    const r = Math.min(this.W, this.H) * 0.30;
+    this.body = new SoftBody(
+      this.CX, this.CY, r,
+      24, v.bounce || 0.18, v.damp || 0.82, cat.id, v.shape || 'blob'
+    );
+    this.body.color   = v.inner   || '#ff6eb4';
+    this.body.colorHi = v.innerHi || '#ffb0d0';
+    this.body.colorDk = v.innerDk || '#cc4488';
+
+    // Back button overlay
+    const backBtn = document.createElement('button');
+    backBtn.className    = 'back-btn play-back';
+    backBtn.textContent  = '←';
+    backBtn.addEventListener('click', () => this._showHome());
+    this.ui.appendChild(backBtn);
+
+    // Phase label
+    this._updatePhaseLabel();
+  }
+
+  _updatePhaseLabel() {
+    const old = document.getElementById('phaseLabel');
+    if (old) old.remove();
+    const label = document.createElement('div');
+    label.id        = 'phaseLabel';
+    label.className = 'phase-label';
+    if (this.category.id === 'wakkuball') {
+      label.textContent = this.playPhase === 0
+        ? '탁탁! 왁스를 깨보세요 🥚'
+        : '꾹꾹! 메쉬볼을 눌러보세요 🟢';
+    }
+    this.ui.appendChild(label);
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // NAVIGATION HELPERS
+  // ──────────────────────────────────────────────────────────
+  _selectCategory(cat) {
+    this.category = cat;
+    this.audio.play('select');
+    this._showVariants();
+  }
+
+  _selectVariant(v) {
+    this.variant = v;
+    this.audio.play('select');
+    this._showIngredients();
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // INPUT EVENTS
+  // ──────────────────────────────────────────────────────────
+  _bindEvents() {
+    window.addEventListener('resize', () => this._resizeCanvas());
+
+    const onStart = (x, y) => {
+      this.pressPoint  = { x, y };
+      this.pressActive = true;
+      this.dragPoints  = [{ x, y }];
+      this._onPress(x, y);
+    };
+    const onMove = (x, y) => {
+      if (!this.pressActive) return;
+      this.pressPoint = { x, y };
+      this.dragPoints.push({ x, y });
+      if (this.dragPoints.length > 40) this.dragPoints.shift();
+      this._onDrag(x, y);
+    };
+    const onEnd = () => {
+      this.pressActive = false;
+      this._onRelease();
+    };
+
+    // Mouse
+    this.canvas.addEventListener('mousedown',  e => onStart(e.clientX, e.clientY));
+    this.canvas.addEventListener('mousemove',  e => onMove(e.clientX, e.clientY));
+    this.canvas.addEventListener('mouseup',    onEnd);
+    this.canvas.addEventListener('mouseleave', onEnd);
+
+    // Touch
+    this.canvas.addEventListener('touchstart', e => {
+      e.preventDefault();
+      const t = e.touches[0];
+      onStart(t.clientX, t.clientY);
+    }, { passive: false });
+    this.canvas.addEventListener('touchmove', e => {
+      e.preventDefault();
+      const t = e.touches[0];
+      onMove(t.clientX, t.clientY);
+    }, { passive: false });
+    this.canvas.addEventListener('touchend',   e => { e.preventDefault(); onEnd(); }, { passive: false });
+  }
+
+  _onPress(x, y) {
+    if (this.state === 'making' && this.makeGesture) {
+      // handled in loop
+    }
+    if (this.state === 'playing') {
+      if (this.category.id === 'wakkuball' && this.playPhase === 0 && this.wax) {
+        const dx = x - this.wax.cx, dy = y - this.wax.cy;
+        if (Math.hypot(dx, dy) < this.wax.radius * 1.1) {
+          this.wax.tap(x, y);
+          // Progress-based cracking sounds for satisfying ASMR escalation
+          const prog = this.wax.progress();
+          const tone = this.variant?.tone || 'crisp';
+          if (prog < 0.30) {
+            this.audio.crack(tone);
+            this._haptic(12);
+          } else if (prog < 0.70) {
+            this.audio.bigCrack(tone);
+            this._haptic(22);
+          } else {
+            this.audio.crack(tone);
+            setTimeout(() => this.audio.pop(), 55);
+            this._haptic(30);
+          }
+          if (this.wax.done()) {
+            setTimeout(() => { this.playPhase = 1; this._updatePhaseLabel(); }, 600);
+          }
+        }
+      }
+      if (this.body) this.body.pointerDown(x, y);
+      // Type-specific press sounds
+      const catId = this.category?.id;
+      if (catId === 'squishy') this.audio.play('foam');
+      else if (catId === 'slime') this.audio.play('squeeze');
+      else if (catId === 'mallangi') this.audio.play('squeeze');
+      else this.audio.play('squeeze');
+      this._haptic(10);
+    }
+  }
+
+  _onDrag(x, y) {
+    if (this.state === 'making' && this.makeGesture) {
+      this.makeProgress = Math.min(1, this.makeProgress + 0.012);
+      this._updateProgressBar();
+      if (this.makeProgress >= 1) { this.makeGesture = false; this._advanceMakeStep(); }
+    }
+    if (this.state === 'playing' && this.body) {
+      if (this.category.id === 'mallangi') {
+        this.body.pointerMove(x, y);
+        if (Math.random() < 0.08) this.audio.stretch(0.2);
+      } else if (this.category.id === 'slime') {
+        this.body.pointerMove(x, y);
+        this._accumulateSwirl(x, y);
+        if (Math.random() < 0.06) this.audio.stir();
+      } else {
+        this.body.pointerMove(x, y);
+        if (Math.random() < 0.05) this.audio.meshCreak();
+      }
+    }
+  }
+
+  _onRelease() {
+    if (this.state === 'playing' && this.body) {
+      this.body.pointerUp();
+      const catId = this.category?.id;
+      if (catId === 'mallangi') this.audio.pop();
+      else if (catId === 'squishy') this.audio.foam();
+    }
+  }
+
+  _accumulateSwirl(x, y) {
+    if (this.dragPoints.length < 2) return;
+    const prev = this.dragPoints[this.dragPoints.length - 2];
+    const cx   = this.body ? this.body.cx : this.CX;
+    const cy   = this.body ? this.body.cy : this.CY;
+    const a1   = Math.atan2(prev.y - cy, prev.x - cx);
+    const a2   = Math.atan2(y - cy, x - cx);
+    let da = a2 - a1;
+    if (da >  Math.PI) da -= Math.PI * 2;
+    if (da < -Math.PI) da += Math.PI * 2;
+    this.swirl += da;
+  }
+
+  _haptic(ms) {
+    if (navigator.vibrate) navigator.vibrate(ms);
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // ANIMATION LOOP
+  // ──────────────────────────────────────────────────────────
+  _loop() {
+    const now = performance.now();
+    const dt  = Math.min((now - this._lastTime) / 1000, 0.05);
+    this._lastTime = now;
+
+    const ctx = this.ctx;
+    ctx.clearRect(0, 0, this.W, this.H);
+
+    this._drawBackground();
+
+    if (this.state === 'making') {
+      this._drawMakingScene(dt);
+    }
+
+    if (this.state === 'playing') {
+      if (this.body) this.body.update(dt);
+      if (this.wax)  this.wax.update(dt);
+      this._drawPlayScene();
+    }
+
+    this.particles.update(dt);
+    this.particles.draw(ctx);
+
+    if (this.makeCelebrate > 0) {
+      this.makeCelebrate--;
+      this._drawCelebrateText();
+    }
+
+    requestAnimationFrame(() => this._loop());
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // BACKGROUND
+  // ──────────────────────────────────────────────────────────
+  _drawBackground() {
+    const ctx = this.ctx;
+    const g   = ctx.createRadialGradient(this.CX, this.CY * 0.6, 0, this.CX, this.CY, this.H * 0.8);
+    g.addColorStop(0,   '#1e1030');
+    g.addColorStop(0.5, '#120a22');
+    g.addColorStop(1,   '#080510');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, this.W, this.H);
+
+    // Subtle star-field
+    ctx.save();
+    ctx.globalAlpha = 0.18;
+    for (let i = 0; i < 60; i++) {
+      // deterministic pseudo-random using index
+      const sx = ((i * 137.508 + 23)   % this.W);
+      const sy = ((i * 97.31  + 11)    % (this.H * 0.85));
+      const sr = 0.6 + (i % 3) * 0.5;
+      ctx.beginPath();
+      ctx.arc(sx, sy, sr, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // ── Ambient floating particles (play mode only) ───────────
+    if (this.state === 'playing') {
+      const t   = performance.now() / 1000;
+      const col = this.variant?.wax || '#c084fc';
+      ctx.save();
+      for (let i = 0; i < 22; i++) {
+        const seed   = i * 1.61803;
+        const xBase  = (seed * 73.19 + i * 93.07) % this.W;
+        const speed  = 0.012 + (i % 5) * 0.007;
+        const phase  = seed * 5.33;
+        // Drift upward slowly, wrap around vertically
+        const yRaw   = this.H - ((t * speed * this.H * 0.5 + seed * this.H * 0.9) % this.H);
+        const xWobble = xBase + Math.sin(t * 0.6 + phase) * 14;
+        const size   = 1.0 + (i % 3) * 0.8;
+        const pulse  = 0.25 + 0.20 * Math.sin(t * 1.2 + phase);
+        ctx.globalAlpha = Math.max(0, pulse);
+        ctx.beginPath();
+        ctx.arc(xWobble, yRaw, size, 0, Math.PI * 2);
+        // Tint slightly toward variant color
+        ctx.fillStyle = i % 3 === 0 ? col : '#ffffff';
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // SHADOW
+  // ──────────────────────────────────────────────────────────
+  _drawShadow(cx, cy, radius) {
+    const ctx = this.ctx;
+    const sg  = ctx.createRadialGradient(cx, cy + radius * 0.12, 0, cx, cy + radius * 0.12, radius * 0.9);
+    sg.addColorStop(0,   'rgba(0,0,0,0.45)');
+    sg.addColorStop(0.6, 'rgba(0,0,0,0.18)');
+    sg.addColorStop(1,   'rgba(0,0,0,0)');
+    ctx.save();
+    ctx.scale(1, 0.28);
+    ctx.beginPath();
+    ctx.arc(cx, (cy + radius * 0.9) / 0.28, radius * 0.82, 0, Math.PI * 2);
+    ctx.fillStyle = sg;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // MAKING SCENE (canvas portion)
+  // ──────────────────────────────────────────────────────────
+  _drawMakingScene(dt) {
+    const ctx  = this.ctx;
+    const cat  = this.category;
+    const t    = performance.now() / 1000;
+    const cx   = this.CX;
+    const cy   = this.CY * 0.55;
+    const r    = Math.min(this.W, this.H) * 0.22;
+
+    // Bowl
+    ctx.save();
+    const bw = r * 2.2, bh = r * 0.9;
+    const bx = cx - bw / 2,  by = cy + r * 0.6;
+    const bowlG = ctx.createLinearGradient(bx, by, bx, by + bh);
+    bowlG.addColorStop(0, '#f0e6d0');
+    bowlG.addColorStop(1, '#c8b89a');
+    ctx.beginPath();
+    ctx.ellipse(cx, by + bh * 0.08, bw / 2, bh * 0.3, 0, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(bx, by);
+    ctx.quadraticCurveTo(bx - 10,  by + bh, cx,       by + bh * 1.05);
+    ctx.quadraticCurveTo(bx + bw + 10, by + bh, bx + bw, by);
+    ctx.fillStyle = bowlG;
+    ctx.fill();
+    ctx.strokeStyle = '#b0a080';
+    ctx.lineWidth   = 2;
+    ctx.stroke();
+    ctx.restore();
+
+    // Animated ingredient blob
+    const progress = this.makeProgress;
+    const blob_r   = r * (0.18 + progress * 0.55);
+    const blob_y   = by + bh * 0.5;
+    const blob_col = this.variant?.wax || '#ff6eb4';
+
+    ctx.save();
+    ctx.beginPath();
+    for (let a = 0; a < Math.PI * 2; a += 0.05) {
+      const wobble = 1 + 0.06 * Math.sin(a * 5 + t * 4);
+      const rx     = cx     + Math.cos(a) * blob_r * wobble;
+      const ry     = blob_y + Math.sin(a) * blob_r * 0.55 * wobble;
+      a < 0.06 ? ctx.moveTo(rx, ry) : ctx.lineTo(rx, ry);
+    }
+    ctx.closePath();
+    const blobG = ctx.createRadialGradient(cx - blob_r * 0.25, blob_y - blob_r * 0.2, 0, cx, blob_y, blob_r);
+    blobG.addColorStop(0, _lighten(blob_col, 60));
+    blobG.addColorStop(0.6, blob_col);
+    blobG.addColorStop(1, _darken(blob_col, 40));
+    ctx.fillStyle = blobG;
+    ctx.globalAlpha = 0.88;
+    ctx.fill();
+    ctx.restore();
+
+    // Spoon / stir animation when progress > 0.3
+    if (this.makeGesture && progress > 0.15) {
+      const angle   = t * 3.5;
+      const sx      = cx + Math.cos(angle) * r * 0.45;
+      const sy      = blob_y + Math.sin(angle) * r * 0.22;
+      ctx.save();
+      ctx.translate(sx, sy);
+      ctx.rotate(angle + Math.PI / 4);
+      ctx.fillStyle = '#d4af6a';
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 10, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillRect(-2, 6, 4, 28);
+      ctx.restore();
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // PLAY SCENE DISPATCH
+  // ──────────────────────────────────────────────────────────
+  _drawPlayScene() {
+    const id = this.category?.id;
+    if      (id === 'wakkuball') this._drawWakkuballPhased();
+    else if (id === 'squishy')   this._drawSquishy();
+    else if (id === 'mallangi')  this._drawMallangi();
+    else if (id === 'slime')     this._drawSlime();
+  }
+
+  _drawWakkuballPhased() {
+    if (this.playPhase === 0) this._drawWaxBall();
+    else                       this._drawWakkuball();
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // WAX BALL RENDERER
+  // ──────────────────────────────────────────────────────────
+  _drawWaxBall() {
+    if (!this.wax) return;
+    const ctx  = this.ctx;
+    const { cx, cy, radius: r } = this.wax;
+    const t    = performance.now() / 1000;
+
+    this._drawShadow(cx, cy, r);
+
+    // ── Inner squishy visible through cracks ────────────────
+    if (this.body && this.wax.progress() > 0.1) {
+      const alpha = Math.min(1, this.wax.progress() * 2);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.beginPath();
+      this.body.buildPath(ctx);
+      const ig = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.3, 0, cx, cy, r * 0.85);
+      ig.addColorStop(0, _lighten(this.body.color, 50));
+      ig.addColorStop(0.5, this.body.color);
+      ig.addColorStop(1, _darken(this.body.color, 50));
+      ctx.fillStyle = ig;
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // ── Wax hex cells ────────────────────────────────────────
+    const _waxShape = this.variant?.shape || 'blob';
+    ctx.save();
+    this._fruitPath(ctx, cx, cy, r, _waxShape);
+    ctx.clip();
+
+    const cellSize = r * 0.22;
+    const cols     = Math.ceil(r * 2 / (cellSize * 1.5)) + 2;
+    const rows     = Math.ceil(r * 2 / (cellSize * Math.sqrt(3))) + 2;
+    const waxBase  = this.wax.colors?.[0] || '#f5d76e';
+    const waxDark  = this.wax.colors?.[1] || '#d4a017';
+
+    for (let row = -1; row < rows; row++) {
+      for (let col = -1; col < cols; col++) {
+        const hx = cx - r + col * cellSize * 1.5;
+        const hy = cy - r + row * cellSize * Math.sqrt(3) + (col % 2 === 0 ? 0 : cellSize * Math.sqrt(3) * 0.5);
+        const dist = Math.hypot(hx - cx, hy - cy);
+        if (dist > r * 1.1) continue;
+
+        const bright = 0.7 + 0.3 * (1 - dist / r);
+        const crackAlpha = this.wax.progress() * 0.55;
+        ctx.beginPath();
+        this._hexPath(ctx, hx, hy, cellSize * 0.47);
+        const hg = ctx.createRadialGradient(hx - cellSize * 0.1, hy - cellSize * 0.1, 0, hx, hy, cellSize * 0.5);
+        hg.addColorStop(0, _lighten(waxBase, bright * 30));
+        hg.addColorStop(1, waxDark);
+        ctx.fillStyle  = hg;
+        ctx.globalAlpha = Math.max(0, 1 - crackAlpha * (0.5 + 0.5 * (dist / r)));
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+        ctx.lineWidth   = 0.8;
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+
+    // ── Crack lines ──────────────────────────────────────────
+    if (this.wax && this.wax.cracks) {
+      ctx.save();
+      this.wax.cracks.forEach(crack => {
+        ctx.beginPath();
+        ctx.moveTo(crack.x1, crack.y1);
+        ctx.lineTo(crack.x2, crack.y2);
+        ctx.strokeStyle = `rgba(255,255,255,${crack.alpha || 0.7})`;
+        ctx.lineWidth   = 2.5;
+        ctx.shadowColor = '#ffffffaa';
+        ctx.shadowBlur  = 6;
+        ctx.stroke();
+        // Dark edge of crack
+        ctx.strokeStyle = `rgba(0,0,0,${(crack.alpha || 0.7) * 0.6})`;
+        ctx.lineWidth   = 1.2;
+        ctx.shadowBlur  = 0;
+        ctx.stroke();
+      });
+      ctx.restore();
+    }
+
+    // ── 3-D sphere shading overlay ────────────────────────────
+    const sphG = ctx.createRadialGradient(cx - r * 0.35, cy - r * 0.35, r * 0.05, cx, cy, r);
+    sphG.addColorStop(0,    'rgba(255,255,255,0.18)');
+    sphG.addColorStop(0.55, 'rgba(255,255,255,0.0)');
+    sphG.addColorStop(1,    'rgba(0,0,0,0.38)');
+    this._fruitPath(ctx, cx, cy, r, _waxShape);
+    ctx.fillStyle = sphG;
+    ctx.fill();
+
+    // ── Specular highlight ───────────────────────────────────
+    const sg = ctx.createRadialGradient(cx - r * 0.32, cy - r * 0.38, 0, cx - r * 0.28, cy - r * 0.3, r * 0.4);
+    sg.addColorStop(0,   'rgba(255,255,255,0.82)');
+    sg.addColorStop(0.4, 'rgba(255,255,255,0.2)');
+    sg.addColorStop(1,   'rgba(255,255,255,0)');
+    this._fruitPath(ctx, cx, cy, r, _waxShape);
+    ctx.fillStyle = sg;
+    ctx.fill();
+
+    // ── Apple/peach embellishments over the wax ───────────────
+    if (_waxShape === 'apple' && this.wax.progress() < 0.45) {
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, 0.75 - this.wax.progress() * 1.65);
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - r * 0.95);
+      ctx.bezierCurveTo(cx - r*0.02, cy - r*1.12, cx + r*0.18, cy - r*1.18, cx + r*0.14, cy - r*1.30);
+      ctx.strokeStyle = '#5a3a1a';
+      ctx.lineWidth   = Math.max(2, r * 0.035);
+      ctx.lineCap     = 'round';
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.ellipse(cx + r*0.08, cy - r*1.10, r*0.13, r*0.07, -0.55, 0, Math.PI * 2);
+      ctx.fillStyle = '#4a8a2a';
+      ctx.fill();
+      ctx.restore();
+    }
+    if (_waxShape === 'peach' && this.wax.progress() < 0.4) {
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, 0.45 - this.wax.progress() * 1.1);
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - r * 0.82);
+      ctx.bezierCurveTo(cx - r*0.04, cy - r*0.25, cx - r*0.04, cy + r*0.25, cx, cy + r * 0.82);
+      ctx.strokeStyle = 'rgba(0,0,0,0.20)';
+      ctx.lineWidth   = 2.5;
+      ctx.lineCap     = 'round';
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // ── Fruit decoration overlay ──────────────────────────────
+    if (this.variant?.emoji) {
+      ctx.save();
+      ctx.font = `${Math.round(r * 0.7)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.globalAlpha = 0.15 + 0.15 * Math.sin(t * 2);
+      ctx.fillText(this.variant.emoji, cx, cy);
+      ctx.restore();
+    }
+  }
+
+  /**
+   * Draw a fruit-shaped closed path in ctx.
+   * @param {CanvasRenderingContext2D} ctx
+   * @param {number} cx  - centre x
+   * @param {number} cy  - centre y
+   * @param {number} r   - base radius
+   * @param {string} shape - 'apple'|'strawberry'|'lemon'|'peach'|'grape'|'blob'
+   * @param {number} deform - 0‒1, how much the shape is rounded back to circle
+   */
+  _fruitPath(ctx, cx, cy, r, shape = 'blob', deform = 0) {
+    ctx.beginPath();
+    const pts = 48;
+
+    switch (shape) {
+      case 'apple': {
+        for (let i = 0; i < pts; i++) {
+          const a = (i / pts) * Math.PI * 2 - Math.PI / 2;
+          const sinA = Math.sin(a);   // -1 top, +1 bottom
+          let rr;
+          if (sinA < 0) {
+            rr = r * (1.0 + sinA * 0.14 * (1 - deform));  // indent top
+          } else {
+            rr = r * (1.0 + sinA * 0.10 * (1 - deform));  // widen bottom
+          }
+          const px = cx + Math.cos(a) * rr;
+          const py = cy + Math.sin(a) * rr;
+          i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+        }
+        break;
+      }
+      case 'peach': {
+        for (let i = 0; i < pts; i++) {
+          const a = (i / pts) * Math.PI * 2 - Math.PI / 2;
+          const sinA = Math.sin(a);
+          const rr = sinA < 0
+            ? r * (1.0 + sinA * 0.12 * (1 - deform))
+            : r * (1.0 + sinA * 0.12 * (1 - deform));
+          const px = cx + Math.cos(a) * rr;
+          const py = cy + Math.sin(a) * rr;
+          i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+        }
+        break;
+      }
+      case 'strawberry': {
+        for (let i = 0; i < pts; i++) {
+          const a = (i / pts) * Math.PI * 2 - Math.PI / 2;
+          const sinA = Math.sin(a);   // -1 top, +1 bottom
+          const rr = r * (1.0 - sinA * 0.18 * (1 - deform));  // top wider, bottom narrower
+          const px = cx + Math.cos(a) * rr;
+          const py = cy + Math.sin(a) * rr;
+          i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+        }
+        break;
+      }
+      case 'lemon': {
+        for (let i = 0; i < pts; i++) {
+          const a = (i / pts) * Math.PI * 2;
+          const xr = r * (1.0 + 0.30 * (1 - deform));   // wider horizontally
+          const yr = r * (1.0 - 0.20 * (1 - deform));   // shorter vertically
+          const px = cx + Math.cos(a) * xr;
+          const py = cy + Math.sin(a) * yr;
+          i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+        }
+        break;
+      }
+      case 'grape': {
+        // Three bumps: lower-left, lower-right, top centre
+        const bumpAngles = [Math.PI * 7/6, Math.PI * 11/6, -Math.PI / 2];
+        for (let i = 0; i < pts; i++) {
+          const a = (i / pts) * Math.PI * 2;
+          let maxBump = 0;
+          bumpAngles.forEach(ba => {
+            let diff = a - ba;
+            while (diff >  Math.PI) diff -= 2 * Math.PI;
+            while (diff < -Math.PI) diff += 2 * Math.PI;
+            const d = Math.abs(diff);
+            if (d < 0.9) maxBump = Math.max(maxBump, 0.16 * (1 - d / 0.9));
+          });
+          const rr = r * (1.0 + maxBump * (1 - deform));
+          const px = cx + Math.cos(a) * rr;
+          const py = cy + Math.sin(a) * rr;
+          i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+        }
+        break;
+      }
+      default: {
+        // Circle fallback for blob, cat, rabbit, bear, donut, cupcake, cake
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        break;
+      }
+    }
+    ctx.closePath();
+  }
+
+  /**
+   * Draw a 3D-shaded fruit-shape preview onto a standalone canvas context.
+   * Used for variant card swatches.
+   */
+  _drawVariantSwatch(ctx, cx, cy, r, variant) {
+    const shape = variant.shape || 'blob';
+    const col   = variant.wax   || '#f5d76e';
+    const colDk = variant.waxDk || '#d4a017';
+    const colHi = variant.waxHi || _lighten(col, 45);
+
+    ctx.save();
+
+    // Fruit silhouette fill
+    this._fruitPath(ctx, cx, cy, r, shape);
+    const fillG = ctx.createRadialGradient(cx - r * 0.28, cy - r * 0.28, 0, cx, cy, r * 1.05);
+    fillG.addColorStop(0,    colHi);
+    fillG.addColorStop(0.45, col);
+    fillG.addColorStop(1,    colDk);
+    ctx.fillStyle = fillG;
+    ctx.fill();
+
+    // 3-D sphere shading
+    const shadeG = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+    shadeG.addColorStop(0,   'rgba(255,255,255,0)');
+    shadeG.addColorStop(0.7, 'rgba(0,0,0,0)');
+    shadeG.addColorStop(1,   'rgba(0,0,0,0.30)');
+    this._fruitPath(ctx, cx, cy, r, shape);
+    ctx.fillStyle = shadeG;
+    ctx.fill();
+
+    // Specular highlight
+    const specG = ctx.createRadialGradient(cx - r * 0.30, cy - r * 0.36, 0, cx - r * 0.22, cy - r * 0.25, r * 0.45);
+    specG.addColorStop(0,   'rgba(255,255,255,0.80)');
+    specG.addColorStop(0.4, 'rgba(255,255,255,0.18)');
+    specG.addColorStop(1,   'rgba(255,255,255,0)');
+    this._fruitPath(ctx, cx, cy, r, shape);
+    ctx.fillStyle = specG;
+    ctx.fill();
+
+    // Peach: draw a subtle cleft line
+    if (shape === 'peach') {
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - r * 0.75);
+      ctx.bezierCurveTo(cx - r * 0.04, cy - r * 0.2, cx - r * 0.04, cy + r * 0.2, cx, cy + r * 0.75);
+      ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+      ctx.lineWidth   = 2.5;
+      ctx.lineCap     = 'round';
+      ctx.stroke();
+    }
+
+    // Strawberry: tiny seed dots
+    if (shape === 'strawberry') {
+      ctx.fillStyle = 'rgba(255,255,255,0.55)';
+      for (let s = 0; s < 8; s++) {
+        const sa = -0.5 + s * 0.55;
+        const sd = r * (0.25 + (s % 3) * 0.18);
+        const sx = cx + Math.cos(sa + Math.PI * 0.9) * sd * 0.6;
+        const sy = cy + Math.sin(sa + Math.PI * 0.9) * sd;
+        ctx.beginPath();
+        ctx.arc(sx, sy, 1.8, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // Grape: small sub-circles to suggest grape cluster detail
+    if (shape === 'grape') {
+      const bumpAngles = [Math.PI * 7/6, Math.PI * 11/6, -Math.PI / 2];
+      bumpAngles.forEach(ba => {
+        const bx = cx + Math.cos(ba) * r * 0.55;
+        const by = cy + Math.sin(ba) * r * 0.55;
+        ctx.beginPath();
+        ctx.arc(bx, by, r * 0.28, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      });
+    }
+
+    // Apple: tiny stem
+    if (shape === 'apple') {
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - r * 0.95);
+      ctx.bezierCurveTo(cx - r * 0.02, cy - r * 1.12, cx + r * 0.18, cy - r * 1.18, cx + r * 0.14, cy - r * 1.28);
+      ctx.strokeStyle = '#5a3a1a';
+      ctx.lineWidth   = 2.2;
+      ctx.lineCap     = 'round';
+      ctx.stroke();
+      // Small leaf
+      ctx.beginPath();
+      ctx.ellipse(cx + r * 0.08, cy - r * 1.08, r * 0.14, r * 0.08, -0.6, 0, Math.PI * 2);
+      ctx.fillStyle = '#4a8a2a';
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
+  _hexPath(ctx, x, y, r) {
+    for (let i = 0; i < 6; i++) {
+      const a  = (Math.PI / 3) * i - Math.PI / 6;
+      const px = x + r * Math.cos(a);
+      const py = y + r * Math.sin(a);
+      i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // WAKKUBALL (MESH) RENDERER  ← most important visual
+  // ──────────────────────────────────────────────────────────
+  _drawWakkuball() {
+    if (!this.body) return;
+    const ctx  = this.ctx;
+    const body = this.body;
+    const t    = performance.now() / 1000;
+    const cx   = body.cx, cy = body.cy, r = body.radius;
+
+    this._drawShadow(cx, cy, r);
+
+    // ── Inner filling (soft body silhouette) ─────────────────
+    ctx.save();
+    ctx.beginPath();
+    body.buildPath(ctx);
+    const fillG = ctx.createRadialGradient(cx - r * 0.28, cy - r * 0.28, 0, cx, cy, r * 1.05);
+    fillG.addColorStop(0,   _lighten(body.color, 55));
+    fillG.addColorStop(0.45, body.color);
+    fillG.addColorStop(1,   _darken(body.color, 45));
+    ctx.fillStyle = fillG;
+    ctx.fill();
+    ctx.restore();
+
+    // ── Mesh bulge effect ────────────────────────────────────
+    // Where the user presses, filling pushes through mesh holes
+    if (this.pressActive && this.pressPoint) {
+      const px    = this.pressPoint.x;
+      const py    = this.pressPoint.y;
+      const pdist = Math.hypot(px - cx, py - cy);
+      const press = body.pressure || 0; // 0‥1
+
+      if (pdist < r * 1.15 && press > 0.05) {
+        const bulgeRadius  = r * 0.18;
+        const bulgeCount   = 7;
+        const spreadRadius = r * 0.55 * press;
+        const pAngle       = Math.atan2(py - cy, px - cx);
+
+        for (let i = 0; i < bulgeCount; i++) {
+          const ba   = pAngle + (i / bulgeCount) * Math.PI * 2;
+          const bDist = spreadRadius * (0.55 + 0.45 * (i % 2));
+          const bx   = cx + Math.cos(ba) * bDist;
+          const by_  = cy + Math.sin(ba) * bDist;
+          const br   = bulgeRadius * press * (0.7 + 0.3 * Math.sin(t * 6 + i));
+
+          // Clip to body silhouette for inner bulges
+          ctx.save();
+          ctx.beginPath();
+          body.buildPath(ctx);
+          ctx.clip();
+
+          // Bulge ball
+          const bg = ctx.createRadialGradient(bx - br * 0.3, by_ - br * 0.3, 0, bx, by_, br);
+          bg.addColorStop(0,   _lighten(body.color, 65));
+          bg.addColorStop(0.5, _lighten(body.color, 25));
+          bg.addColorStop(1,   _darken(body.color, 20));
+          ctx.beginPath();
+          ctx.arc(bx, by_, br, 0, Math.PI * 2);
+          ctx.fillStyle = bg;
+          ctx.fill();
+          ctx.restore();
+
+          // Outer bulge (pushing through mesh holes)
+          const outerStrength = Math.max(0, 1 - pdist / r) * press;
+          if (outerStrength > 0.1) {
+            const obr = br * 0.65 * outerStrength;
+            const obx = cx + Math.cos(ba) * (r * 0.93);
+            const oby = cy + Math.sin(ba) * (r * 0.93);
+            const obg = ctx.createRadialGradient(obx - obr * 0.3, oby - obr * 0.3, 0, obx, oby, obr);
+            obg.addColorStop(0,   _lighten(body.color, 70));
+            obg.addColorStop(0.6, body.color);
+            obg.addColorStop(1,   _darken(body.color, 30));
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(obx, oby, obr, 0, Math.PI * 2);
+            ctx.fillStyle = obg;
+            ctx.shadowColor = body.color;
+            ctx.shadowBlur  = 8;
+            ctx.fill();
+            ctx.restore();
+          }
+        }
+      }
+    }
+
+    // ── Mesh net (hexagonal grid overlay) ────────────────────
+    ctx.save();
+    ctx.beginPath();
+    body.buildPath(ctx);
+    ctx.clip();
+
+    const meshSize = r * 0.18;
+    const meshCols = Math.ceil(r * 2.2 / (meshSize * 1.5)) + 2;
+    const meshRows = Math.ceil(r * 2.2 / (meshSize * Math.sqrt(3))) + 2;
+
+    for (let row = -1; row < meshRows; row++) {
+      for (let col = -1; col < meshCols; col++) {
+        const hx   = cx - r + col * meshSize * 1.5;
+        const hy   = cy - r + row * meshSize * Math.sqrt(3) + (col % 2 === 0 ? 0 : meshSize * Math.sqrt(3) * 0.5);
+        const dist = Math.hypot(hx - cx, hy - cy);
+        if (dist > r * 1.05) continue;
+
+        // Mesh strand
+        ctx.beginPath();
+        this._hexPath(ctx, hx, hy, meshSize * 0.5);
+        ctx.strokeStyle = 'rgba(0,0,0,0.28)';
+        ctx.lineWidth   = 1.8;
+        ctx.stroke();
+        ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+        ctx.lineWidth   = 0.7;
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+
+    // ── Inner fruit decoration ──────────────────────────────
+    if (this.variant?.emoji) {
+      ctx.save();
+      ctx.beginPath();
+      body.buildPath(ctx);
+      ctx.clip();
+      ctx.font = `${Math.round(r * 0.55)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.globalAlpha = 0.12;
+      ctx.fillText(this.variant.emoji, cx - r*0.2, cy - r*0.15);
+      ctx.fillText(this.variant.emoji, cx + r*0.25, cy + r*0.2);
+      ctx.restore();
+    }
+
+    // ── Mesh 3-D shading ─────────────────────────────────────
+    ctx.save();
+    ctx.beginPath();
+    body.buildPath(ctx);
+    const meshShade = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.3, 0, cx, cy, r);
+    meshShade.addColorStop(0,   'rgba(255,255,255,0.10)');
+    meshShade.addColorStop(0.6, 'rgba(0,0,0,0.0)');
+    meshShade.addColorStop(1,   'rgba(0,0,0,0.40)');
+    ctx.fillStyle = meshShade;
+    ctx.fill();
+    ctx.restore();
+
+    // ── Specular highlight ───────────────────────────────────
+    const spec = ctx.createRadialGradient(cx - r * 0.33, cy - r * 0.40, 0, cx - r * 0.28, cy - r * 0.33, r * 0.38);
+    spec.addColorStop(0,   'rgba(255,255,255,0.60)');
+    spec.addColorStop(0.5, 'rgba(255,255,255,0.12)');
+    spec.addColorStop(1,   'rgba(255,255,255,0)');
+    ctx.save();
+    ctx.beginPath();
+    body.buildPath(ctx);
+    ctx.fillStyle = spec;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // SQUISHY RENDERER
+  // ──────────────────────────────────────────────────────────
+  _drawSquishy() {
+    if (!this.body) return;
+    const ctx  = this.ctx;
+    const body = this.body;
+    const t    = performance.now() / 1000;
+    const cx   = body.cx, cy = body.cy, r = body.radius;
+    const v    = this.variant || {};
+    const col  = v.wax || '#ffb3c6';
+
+    this._drawShadow(cx, cy, r);
+
+    // ── Main shape ───────────────────────────────────────────
+    ctx.save();
+    ctx.beginPath();
+    body.buildPath(ctx);
+    const sg = ctx.createRadialGradient(cx - r * 0.25, cy - r * 0.25, 0, cx, cy, r);
+    sg.addColorStop(0,   _lighten(col, 60));
+    sg.addColorStop(0.55, col);
+    sg.addColorStop(1,   _darken(col, 50));
+    ctx.fillStyle = sg;
+    ctx.fill();
+
+    // ── Indent / press dent ──────────────────────────────────
+    if (this.pressActive && this.pressPoint) {
+      const px   = this.pressPoint.x - cx;
+      const py   = this.pressPoint.y - cy;
+      const pdst = Math.hypot(px, py);
+      if (pdst < r) {
+        const dg = ctx.createRadialGradient(
+          this.pressPoint.x, this.pressPoint.y, 0,
+          this.pressPoint.x, this.pressPoint.y, r * 0.35
+        );
+        dg.addColorStop(0,   'rgba(0,0,0,0.22)');
+        dg.addColorStop(1,   'rgba(0,0,0,0)');
+        ctx.fillStyle = dg;
+        ctx.fill();
+      }
+    }
+
+    // ── Frosting detail (donut, cake etc.) ───────────────────
+    if (v.id === 'donut' || v.id === 'cake' || v.id === 'cupcake') {
+      const fg = ctx.createLinearGradient(cx - r * 0.6, cy - r * 0.2, cx + r * 0.6, cy + r * 0.2);
+      fg.addColorStop(0, 'rgba(255,255,255,0.65)');
+      fg.addColorStop(1, 'rgba(255,200,220,0.45)');
+      ctx.beginPath();
+      ctx.ellipse(cx, cy - r * 0.18, r * 0.6, r * 0.3, -0.1, 0, Math.PI * 2);
+      ctx.fillStyle = fg;
+      ctx.fill();
+
+      // Sprinkles
+      const sprinkleColors = ['#ff6b6b','#feca57','#48dbfb','#ff9ff3','#54a0ff'];
+      for (let i = 0; i < 14; i++) {
+        const sa   = (i / 14) * Math.PI * 2;
+        const sd   = r * (0.25 + (i % 3) * 0.12);
+        const sx_  = cx + Math.cos(sa) * sd * 0.9;
+        const sy_  = cy - r * 0.18 + Math.sin(sa) * sd * 0.45;
+        ctx.save();
+        ctx.translate(sx_, sy_);
+        ctx.rotate(sa + 0.4);
+        ctx.fillStyle = sprinkleColors[i % sprinkleColors.length];
+        ctx.fillRect(-5, -2, 10, 4);
+        ctx.restore();
+      }
+    }
+
+    // ── Donut hole ───────────────────────────────────────────
+    if (v.id === 'donut') {
+      const holeG = ctx.createRadialGradient(cx, cy + r * 0.05, 0, cx, cy + r * 0.05, r * 0.22);
+      holeG.addColorStop(0, 'rgba(10,5,16,0.85)');
+      holeG.addColorStop(0.7, 'rgba(10,5,16,0.5)');
+      holeG.addColorStop(1, 'rgba(10,5,16,0)');
+      ctx.beginPath();
+      ctx.arc(cx, cy + r * 0.05, r * 0.22, 0, Math.PI * 2);
+      ctx.fillStyle = holeG;
+      ctx.fill();
+    }
+
+    // ── Cupcake wrapper ──────────────────────────────────────
+    if (v.id === 'cupcake') {
+      ctx.save();
+      ctx.beginPath();
+      body.buildPath(ctx);
+      ctx.clip();
+      // Paper wrapper bottom half
+      const wrapY = cy + r * 0.1;
+      for (let i = 0; i < 12; i++) {
+        const wx1 = cx - r * 0.8 + i * r * 0.133;
+        const wx2 = wx1 + r * 0.067;
+        ctx.beginPath();
+        ctx.moveTo(wx1, wrapY);
+        ctx.lineTo(wx2, wrapY);
+        ctx.lineTo(wx2, cy + r * 0.9);
+        ctx.lineTo(wx1, cy + r * 0.9);
+        ctx.closePath();
+        ctx.fillStyle = i % 2 === 0 ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.05)';
+        ctx.fill();
+      }
+      // Cherry on top
+      ctx.beginPath();
+      ctx.arc(cx, cy - r * 0.55, r * 0.12, 0, Math.PI * 2);
+      ctx.fillStyle = '#ff4466';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(cx - r * 0.03, cy - r * 0.58, r * 0.04, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // ── Cake layers ──────────────────────────────────────────
+    if (v.id === 'cake') {
+      ctx.save();
+      ctx.beginPath();
+      body.buildPath(ctx);
+      ctx.clip();
+      // Layer lines
+      [0.15, -0.15].forEach(yOff => {
+        ctx.beginPath();
+        ctx.moveTo(cx - r * 0.8, cy + r * yOff);
+        ctx.lineTo(cx + r * 0.8, cy + r * yOff);
+        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      });
+      // Candles
+      for (let c = 0; c < 3; c++) {
+        const candleX = cx + (c - 1) * r * 0.3;
+        ctx.fillStyle = ['#ff6b6b','#feca57','#48dbfb'][c];
+        ctx.fillRect(candleX - 3, cy - r * 0.5, 6, r * 0.3);
+        // Flame
+        ctx.beginPath();
+        ctx.ellipse(candleX, cy - r * 0.55, 4, 7, 0, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffcc00';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(candleX, cy - r * 0.56, 2, 4, 0, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.globalAlpha = 0.7;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+      ctx.restore();
+    }
+
+    // ── Specular ─────────────────────────────────────────────
+    const spec = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.38, 0, cx, cy, r);
+    spec.addColorStop(0,   'rgba(255,255,255,0.70)');
+    spec.addColorStop(0.3, 'rgba(255,255,255,0.10)');
+    spec.addColorStop(1,   'rgba(255,255,255,0)');
+    ctx.fillStyle = spec;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // MALLANGI RENDERER
+  // ──────────────────────────────────────────────────────────
+  _drawMallangi() {
+    if (!this.body) return;
+    const ctx  = this.ctx;
+    const body = this.body;
+    const t    = performance.now() / 1000;
+    const cx   = body.cx, cy = body.cy, r = body.radius;
+    const col  = this.variant?.wax || '#a29bfe';
+
+    this._drawShadow(cx, cy * 1.02, r * (body.stretchY || 1));
+
+    // ── Jelly body ───────────────────────────────────────────
+    ctx.save();
+    ctx.beginPath();
+    body.buildPath(ctx);
+    const jg = ctx.createRadialGradient(cx - r * 0.22, cy - r * 0.22, 0, cx, cy, r * 1.1);
+    jg.addColorStop(0,   _lighten(col, 55) + 'cc');
+    jg.addColorStop(0.5, col + 'aa');
+    jg.addColorStop(1,   _darken(col, 40) + 'dd');
+    ctx.fillStyle = jg;
+    ctx.fill();
+
+    // ── Translucent inner glow ────────────────────────────────
+    const ig = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 0.6);
+    ig.addColorStop(0,   _lighten(col, 80) + '55');
+    ig.addColorStop(1,   'rgba(0,0,0,0)');
+    ctx.fillStyle = ig;
+    ctx.fill();
+    ctx.restore();
+
+    // ── Face ─────────────────────────────────────────────────
+    ctx.save();
+    ctx.beginPath();
+    body.buildPath(ctx);
+    ctx.clip();
+
+    const eyeR  = r * 0.09;
+    const eyeY  = cy - r * 0.08;
+    const eyeOff = r * 0.22;
+
+    // Eyes
+    [-1, 1].forEach(side => {
+      const ex = cx + side * eyeOff;
+      ctx.beginPath();
+      ctx.ellipse(ex, eyeY, eyeR, eyeR * 1.15, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#2d2030';
+      ctx.fill();
+      // Eye shine
+      ctx.beginPath();
+      ctx.arc(ex - eyeR * 0.25, eyeY - eyeR * 0.28, eyeR * 0.28, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.fill();
+    });
+
+    // Blush
+    [-1, 1].forEach(side => {
+      ctx.save();
+      ctx.globalAlpha = 0.35;
+      ctx.beginPath();
+      ctx.ellipse(cx + side * eyeOff * 1.4, eyeY + eyeR * 1.8, eyeR * 1.1, eyeR * 0.55, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#ff7eb3';
+      ctx.fill();
+      ctx.restore();
+    });
+
+    // Smile
+    ctx.beginPath();
+    ctx.arc(cx, eyeY + r * 0.22, r * 0.14, 0.15, Math.PI - 0.15);
+    ctx.strokeStyle = '#2d2030';
+    ctx.lineWidth   = eyeR * 0.9;
+    ctx.lineCap     = 'round';
+    ctx.stroke();
+
+    // ── Animal-specific features ─────────────────────────────
+    const vid = this.variant?.id;
+    if (vid === 'cat') {
+      // Cat ears (triangles)
+      [-1, 1].forEach(side => {
+        ctx.beginPath();
+        const earX = cx + side * r * 0.45;
+        const earY = cy - r * 0.75;
+        ctx.moveTo(earX, earY);
+        ctx.lineTo(earX + side * r * 0.28, earY + r * 0.38);
+        ctx.lineTo(earX - side * r * 0.08, earY + r * 0.35);
+        ctx.closePath();
+        ctx.fillStyle = col;
+        ctx.fill();
+        // Inner ear
+        ctx.beginPath();
+        ctx.moveTo(earX, earY + r * 0.08);
+        ctx.lineTo(earX + side * r * 0.18, earY + r * 0.32);
+        ctx.lineTo(earX - side * r * 0.04, earY + r * 0.30);
+        ctx.closePath();
+        ctx.fillStyle = '#ff9eb8';
+        ctx.globalAlpha = 0.6;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      });
+      // Whiskers
+      [-1, 1].forEach(side => {
+        for (let w = 0; w < 3; w++) {
+          ctx.beginPath();
+          const wy = eyeY + eyeR * 2 + w * eyeR * 0.8;
+          ctx.moveTo(cx + side * eyeOff * 0.6, wy);
+          ctx.lineTo(cx + side * r * 0.7, wy + (w - 1) * eyeR * 0.6);
+          ctx.strokeStyle = 'rgba(45,32,48,0.3)';
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+        }
+      });
+    } else if (vid === 'rabbit') {
+      // Rabbit ears (tall ovals)
+      [-1, 1].forEach(side => {
+        ctx.save();
+        ctx.beginPath();
+        ctx.ellipse(cx + side * r * 0.28, cy - r * 0.95, r * 0.14, r * 0.42, side * 0.15, 0, Math.PI * 2);
+        ctx.fillStyle = col;
+        ctx.fill();
+        // Inner ear
+        ctx.beginPath();
+        ctx.ellipse(cx + side * r * 0.28, cy - r * 0.90, r * 0.08, r * 0.30, side * 0.15, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffb8d0';
+        ctx.globalAlpha = 0.5;
+        ctx.fill();
+        ctx.restore();
+      });
+    } else if (vid === 'bear') {
+      // Bear ears (small circles)
+      [-1, 1].forEach(side => {
+        ctx.beginPath();
+        ctx.arc(cx + side * r * 0.48, cy - r * 0.62, r * 0.18, 0, Math.PI * 2);
+        ctx.fillStyle = _darken(col, 30);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(cx + side * r * 0.48, cy - r * 0.62, r * 0.10, 0, Math.PI * 2);
+        ctx.fillStyle = _lighten(col, 40);
+        ctx.fill();
+      });
+      // Bear nose (oval)
+      ctx.beginPath();
+      ctx.ellipse(cx, eyeY + r * 0.14, eyeR * 1.2, eyeR * 0.8, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#4a3040';
+      ctx.fill();
+    }
+
+    ctx.restore();
+
+    // ── Specular highlight ────────────────────────────────────
+    const spec = ctx.createRadialGradient(cx - r * 0.28, cy - r * 0.35, 0, cx, cy, r);
+    spec.addColorStop(0,   'rgba(255,255,255,0.55)');
+    spec.addColorStop(0.4, 'rgba(255,255,255,0.08)');
+    spec.addColorStop(1,   'rgba(255,255,255,0)');
+    ctx.save();
+    ctx.beginPath();
+    body.buildPath(ctx);
+    ctx.fillStyle = spec;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // SLIME RENDERER
+  // ──────────────────────────────────────────────────────────
+  _drawSlime() {
+    if (!this.body) return;
+    const ctx  = this.ctx;
+    const body = this.body;
+    const t    = performance.now() / 1000;
+    const cx   = body.cx, cy = body.cy, r = body.radius;
+    const col  = this.variant?.wax || '#55efc4';
+    const hasGlitter = this.variant?.id === 'glitter';
+    const isCloud    = this.variant?.id === 'cloud';
+
+    this._drawShadow(cx, cy + r * 0.15, r);
+
+    // ── Slime base ───────────────────────────────────────────
+    ctx.save();
+    ctx.beginPath();
+    body.buildPath(ctx);
+
+    // Flat-ish shape gradient (slime sits flat)
+    const sg = ctx.createRadialGradient(cx - r * 0.2, cy - r * 0.3, 0, cx, cy + r * 0.15, r * 1.1);
+    sg.addColorStop(0,   _lighten(col, 50) + 'ee');
+    sg.addColorStop(0.45, col + 'dd');
+    sg.addColorStop(0.85, _darken(col, 30) + 'cc');
+    sg.addColorStop(1,   _darken(col, 55) + '88');
+    ctx.fillStyle = sg;
+    ctx.fill();
+
+    // ── Cloud texture ─────────────────────────────────────────
+    if (isCloud) {
+      ctx.globalAlpha = 0.22;
+      for (let i = 0; i < 8; i++) {
+        const ca   = (i / 8) * Math.PI * 2 + t * 0.3;
+        const cdst = r * 0.38;
+        const ccx  = cx + Math.cos(ca) * cdst;
+        const ccy  = cy + Math.sin(ca) * cdst * 0.55;
+        const cr   = r * (0.22 + 0.1 * Math.sin(i * 2.1));
+        ctx.beginPath();
+        ctx.arc(ccx, ccy, cr, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.8)';
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // ── Swirl pattern ─────────────────────────────────────────
+    if (Math.abs(this.swirl) > 0.5) {
+      const swirlCount = Math.min(6, Math.floor(Math.abs(this.swirl)));
+      ctx.save();
+      ctx.beginPath();
+      body.buildPath(ctx);
+      ctx.clip();
+      for (let s = 0; s < swirlCount; s++) {
+        const sAngle  = (s / swirlCount) * Math.PI * 2 + this.swirl * 0.4;
+        const sGrad   = ctx.createConicGradient
+          ? ctx.createConicGradient(sAngle, cx, cy)
+          : null;
+        if (sGrad) {
+          sGrad.addColorStop(0,   'rgba(255,255,255,0.12)');
+          sGrad.addColorStop(0.5, 'rgba(0,0,0,0.0)');
+          sGrad.addColorStop(1,   'rgba(255,255,255,0.06)');
+          ctx.fillStyle   = sGrad;
+          ctx.globalAlpha = 0.7;
+          ctx.fill();
+        }
+      }
+      ctx.restore();
+      ctx.globalAlpha = 1;
+    }
+
+    // ── Glitter particles ─────────────────────────────────────
+    if (hasGlitter) {
+      ctx.save();
+      ctx.beginPath();
+      body.buildPath(ctx);
+      ctx.clip();
+      const glitterColors = ['#ffffffcc','#ffe0f0cc','#e0efffcc','#f0ffd0cc'];
+      for (let g = 0; g < 38; g++) {
+        const ga   = (g * 137.508 * Math.PI / 180) + t * 1.2;
+        const gd   = r * ((g * 0.618) % 0.88);
+        const gx   = cx + Math.cos(ga) * gd;
+        const gy_  = cy + Math.sin(ga) * gd * 0.75;
+        const gs   = 1.2 + 1.4 * Math.abs(Math.sin(ga * 3 + t * 2));
+        const blink = 0.5 + 0.5 * Math.sin(t * 4 + g);
+        ctx.save();
+        ctx.globalAlpha = blink * 0.9;
+        ctx.translate(gx, gy_);
+        ctx.rotate(ga + t * 2);
+        ctx.fillStyle = glitterColors[g % glitterColors.length];
+        ctx.fillRect(-gs, -gs * 0.3, gs * 2, gs * 0.6);
+        ctx.fillRect(-gs * 0.3, -gs, gs * 0.6, gs * 2);
+        ctx.restore();
+      }
+      ctx.restore();
+      ctx.globalAlpha = 1;
+    }
+
+    // ── Poke dent ────────────────────────────────────────────
+    if (this.pressActive && this.pressPoint) {
+      const px   = this.pressPoint.x;
+      const py   = this.pressPoint.y;
+      const pdst = Math.hypot(px - cx, py - cy);
+      if (pdst < r * 0.95) {
+        const dg = ctx.createRadialGradient(px, py, 0, px, py, r * 0.3);
+        dg.addColorStop(0,   'rgba(0,0,0,0.30)');
+        dg.addColorStop(0.5, 'rgba(0,0,0,0.10)');
+        dg.addColorStop(1,   'rgba(0,0,0,0)');
+        ctx.beginPath();
+        body.buildPath(ctx);
+        ctx.fillStyle = dg;
+        ctx.fill();
+
+        // Slime ripple rings
+        const rippleCount = 3;
+        for (let rp = 0; rp < rippleCount; rp++) {
+          const rAge = ((t * 1.5 + rp / rippleCount) % 1);
+          const rr   = r * 0.28 * rAge;
+          ctx.beginPath();
+          ctx.arc(px, py, rr, 0, Math.PI * 2);
+          ctx.strokeStyle = _lighten(col, 40) + Math.floor((1 - rAge) * 80).toString(16).padStart(2,'0');
+          ctx.lineWidth   = 2 * (1 - rAge);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // ── Glossy surface overlay ────────────────────────────────
+    const glossG = ctx.createRadialGradient(cx - r * 0.25, cy - r * 0.38, 0, cx - r * 0.1, cy - r * 0.15, r * 0.6);
+    glossG.addColorStop(0,   'rgba(255,255,255,0.65)');
+    glossG.addColorStop(0.4, 'rgba(255,255,255,0.12)');
+    glossG.addColorStop(1,   'rgba(255,255,255,0)');
+    ctx.beginPath();
+    body.buildPath(ctx);
+    ctx.fillStyle = glossG;
+    ctx.fill();
+
+    // ── Edge rim light ────────────────────────────────────────
+    ctx.beginPath();
+    body.buildPath(ctx);
+    ctx.strokeStyle = _lighten(col, 30) + '55';
+    ctx.lineWidth   = 3;
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // CELEBRATE TEXT OVERLAY
+  // ──────────────────────────────────────────────────────────
+  _drawCelebrateText() {
+    const ctx     = this.ctx;
+    const alpha   = Math.min(1, this.makeCelebrate / 30);
+    const scale   = 1 + 0.3 * Math.sin((90 - this.makeCelebrate) * 0.15);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(this.CX, this.CY * 0.5);
+    ctx.scale(scale, scale);
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font         = `bold ${Math.round(this.W * 0.09)}px sans-serif`;
+    ctx.fillStyle    = '#ffffff';
+    ctx.shadowColor  = '#ff6eb4';
+    ctx.shadowBlur   = 28;
+    ctx.fillText('완성! 🎉', 0, 0);
+    ctx.restore();
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+// COLOUR UTILITIES  (pure functions, no DOM / canvas deps)
+// ──────────────────────────────────────────────────────────────
+
+/** Parse any CSS hex colour to {r,g,b} */
+function _hexToRgb(hex) {
+  hex = hex.replace('#', '');
+  if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+  const n = parseInt(hex.substring(0, 6), 16);
+  return { r: (n >> 16) & 0xff, g: (n >> 8) & 0xff, b: n & 0xff };
+}
+
+/** Return brighter hex colour (amount 0‥255) */
+function _lighten(hex, amount) {
+  if (!hex || !hex.startsWith('#')) return hex || '#ffffff';
+  const { r, g, b } = _hexToRgb(hex);
+  return '#' + [r, g, b]
+    .map(c => Math.round(Math.min(255, c + amount)).toString(16).padStart(2, '0'))
+    .join('');
+}
+
+/** Return darker hex colour (amount 0‥255) */
+function _darken(hex, amount) {
+  if (!hex || !hex.startsWith('#')) return hex || '#000000';
+  const { r, g, b } = _hexToRgb(hex);
+  return '#' + [r, g, b]
+    .map(c => Math.round(Math.max(0, c - amount)).toString(16).padStart(2, '0'))
+    .join('');
+}
+
+// ──────────────────────────────────────────────────────────────
+// BOOT
+// ──────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => new App());
+
+</script>
+</body>
+</html>
