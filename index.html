@@ -31,7 +31,10 @@ canvas{display:block;position:absolute;top:0;left:0;z-index:1}
   padding:0 16px;
   padding-top:max(50px,calc(env(safe-area-inset-top) + 20px));
   padding-bottom:max(30px,calc(env(safe-area-inset-bottom) + 20px));
+  pointer-events:none;
 }
+#ui.interactive{pointer-events:auto}
+#ui *{pointer-events:auto}
 #phaseLabel{
   position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
   color:#fff;font-size:24px;font-weight:800;z-index:35;
@@ -180,8 +183,10 @@ canvas{display:block;position:absolute;top:0;left:0;z-index:1}
 .make-info{
   position:absolute;top:max(60px,calc(env(safe-area-inset-top) + 40px));
   left:0;right:0;text-align:center;z-index:20;
-  pointer-events:none;
+  pointer-events:none!important;
 }
+.make-info *{pointer-events:none!important}
+.progress-bar-bg,.progress-bar-fill{pointer-events:none!important}
 .make-step-title{font-size:20px;font-weight:800;margin-bottom:6px}
 .make-step-hint{font-size:13px;color:rgba(255,255,255,.45)}
 .make-step-label{font-size:11px;color:rgba(255,255,255,.25);margin-top:8px;letter-spacing:2px}
@@ -1934,8 +1939,14 @@ class App {
     this.ui.innerHTML = '';
   }
 
+  _setUIInteractive(interactive) {
+    if (interactive) this.ui.classList.add('interactive');
+    else this.ui.classList.remove('interactive');
+  }
+
   _showHome() {
     this._clearUI();
+    this._setUIInteractive(true);
     const wrap = document.createElement('div');
     wrap.className = 'home-grid';
 
@@ -1961,6 +1972,7 @@ class App {
 
   _showVariants() {
     this._clearUI();
+    this._setUIInteractive(true);
     const cat = this.category;
 
     const header = document.createElement('div');
@@ -2009,6 +2021,7 @@ class App {
 
   _showIngredients() {
     this._clearUI();
+    this._setUIInteractive(true);
     const cat = this.category;
     const v   = this.variant;
 
@@ -2051,6 +2064,7 @@ class App {
 
   _startMaking() {
     this._clearUI();
+    this._setUIInteractive(false);
     this.state       = 'making';
     this.makeStep    = 0;
     this.makeProgress = 0;
@@ -2111,6 +2125,7 @@ class App {
 
   _startPlaying() {
     this._clearUI();
+    this._setUIInteractive(false);
     this.state     = 'playing';
     this.playPhase = 0;
 
