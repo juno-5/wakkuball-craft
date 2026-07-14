@@ -280,22 +280,9 @@ const CATEGORIES = [
     ],
     variants: [
       {
-        id: 'apple', name: '사과', emoji: '🍎', badge: '인기', shape: 'apple',
-        wax: '#cc2244', waxHi: '#e84466', waxDk: '#8a1028', waxShd: '#a01830',
-        inner: '#ff4466', innerHi: '#ff8899', innerDk: '#cc2244',
-        tone: 'crisp', bounce: .45, damp: .90,
-        ingredients: [
-          { emoji: '🎈', name: '말랑 고무 풍선',  desc: '탱탱한 고무 껍질이에요' },
-          { emoji: '🕸️', name: '메쉬망',          desc: '그물처럼 생긴 망이에요' },
-          { emoji: '💧', name: '오르비즈',         desc: '물 먹으면 커지는 젤리 구슬!' },
-          { emoji: '🧴', name: '물풀',             desc: '투명한 풀이에요' },
-          { emoji: '🎨', name: '빨간 색소',        desc: '맛있는 사과색을 만들어요' }
-        ]
-      },
-      {
-        id: 'green-apple', name: '청사과', emoji: '🍏', badge: '새콤', shape: 'apple',
+        id: 'apple', name: '청사과', emoji: '🍏', badge: '인기', shape: 'apple',
         wax: '#6abf4b', waxHi: '#8dd88d', waxDk: '#3a8a2a', waxShd: '#4a9a3a',
-        inner: '#7dcc55', innerHi: '#a8e888', innerDk: '#4a9930',
+        inner: '#b8e6b8', innerHi: '#e0f5e0', innerDk: '#7cc47c',
         tone: 'crisp', bounce: .45, damp: .90,
         ingredients: [
           { emoji: '🎈', name: '말랑 고무 풍선',  desc: '탱탱한 고무 껍질이에요' },
@@ -893,104 +880,6 @@ const audio = new AudioEngine();
   document.addEventListener(evt, () => audio.init(), { once: true, passive: true })
 );
 
-// ══════════════════════════════════════════════════════════════
-// REAL SOUND ENGINE — Actual recorded wakkuball ASMR sounds
-// ══════════════════════════════════════════════════════════════
-class RealSoundEngine {
-  constructor() {
-    this._ctx = null;
-    this._buffers = {};
-    this._ready = false;
-    this._activeSqueezeSource = null;
-    this._squeezeGain = null;
-    this._sounds = {
-      crack:   'data:audio/ogg;codecs=opus;base64,T2dnUwACAAAAAAAAAABFtPnFAAAAAPqMF98BE09wdXNIZWFkAQE4AYC7AAAAAABPZ2dTAAAAAAAAAAAAAEW0+cUBAAAAs3Hu+AE+T3B1c1RhZ3MNAAAATGF2ZjYyLjEyLjEwMQEAAAAdAAAAZW5jb2Rlcj1MYXZjNjIuMjguMTAxIGxpYm9wdXNPZ2dTAAT4XgAAAAAAAEW0+cUCAAAA+9s6ahp4eHd8dnJsdHB3dnV9cHpxbGxzgHttd3hjU3iB1QvOYW/ihwAxDIVFS5O9CNZ91dn1WfcqbgfdXn9VruL+znYjn7WO+eEhfYRbRmkdT7Ic98lJaKIcf3MycdVaRjk9TGifkljwzYsy3TmikJz5CX8VIAU6KN6vtnPIeiLV+8mtrOddzT+nS8lWkCxb7daiE1fj9niRcJ+oS2NJ0kR6wHaRJC3r7DPsToXiM3dnkXKVTC6IN/3V202X9LjLghbxQNMUI+rjv3YYm5uQ3MJFXiQ+ciLL0IcVzZ4U/fTajGGpNNe6u0Zc9WViiNLItKBoO3gMKPHcaT6AUeMMJPZHoIhNnSkpvHcoS5dR/XiRfVNnBGbkwg71NeL/trwwPCgfTNToTpJTwE0bkW5nfpsB7D7uqA/RuuVhJ5izJ5ItrnbEnXOo2uf7kGsAVVc9rMc4iB7v6gehLZSoOi+b4lsjhqTC5R2anPAOLR+swY80E0pfIslI7+xYWQqexBzLjXLoG+raeJIZOQZJBCJu7z5iyafhYBNUUmPV+OJ5MeadbpscTwb9zdIhXeI/lIdjFPtVPRHFt2e+jsoD0ONpaTVQtmbTsLfowUQfb29nEnYPlvKH4XD1tsha9OMimAlUfA8MV0LZE8hx2HCxojNLzTLL+qQZ6AnPjxpgJXADbSa8i3iSk9e/33mdW6Rn6OgJUocwvfMqEGB/Rh5EOVZ3fNaGt+jnD6QjRbg17nOI6kO63PXB0reS2+vwz24/1kOI2YqT3v9xoSLmNcAuWLgC0t2C2rqKzPHHWAWUYfPYxumLQwNw3mwLaFvvsxDwMoUSJWHKob8r/o54ko9fs1TS1MHT3TTQPSzkOhbWFwZSP0IF7za3pDWbX62GpbuYE/2LuLICVoAMPQgDnnD8dZyyHm0m6BrL5OIEH5TWkhcjdyha8VM9IM+qgdOzNWR6cRPM3z+AGOuPrIVKXuqNEKrHVExD7LxUcWhHng14ko9jiAPpYP/G6oSVJwi47UG+aqiloAT3N59dYP3ajX2mOiI4RY2tM9QA2/Tc0OzyR6+2O813mlZqmghPTtcpyFOtxnJ4FpvQRYE7Wu/8Clz7fEYiwsYj+Lww7yhYlKQR3N1UK1dQ8kym2eh4koRzR2tFTlmrk0YgJHMudwXxrWGGQlpGuESyfzWAhBoLUG3zs67JDA6j204aBzjsBBsud7xH282IcfATXJUOpsYZIlh7JsEYBnIoOzfdQzLDBy2C2ZFpwA6PVWJYq0+wd2bXR97K0PjOfZLgdBXWI2QQc3iR6CKJyyeltST6qn/LhA6gUV6rsAdBgkss2V39D6SiZ6nWqdNSRsIDMm3GxpW1mICu7KX11KffS9Wp8p+FKGDICAC3ym9elz0v3AGuThKaSsU8WHyi6w5yy9u1IAtYk73qGheNFnnFjBDECwiIX554kOE+H91A8IhDThvEnhQ6Jb8NxLa0NpXGTouQrOrRT1rqmc6peUTj4PdAwRYc28eYuRtJaZqHZqBc5m/bi5/ZYaYOSoe4JxFChvH9YAHuKsy8Dw+XtZ1jYGLJPCZeqQS595nD8j1x3QRj2/NrOI2yrfhaA0LvSXiQ4VFnzZJd0OYvQro+vWOuUfQV539eucdbe9aaa43q2Mqejzdq+QfseuZEqf6SM7aDtd/wsSTbTy4FdtY7KxlEqoyHiHOrLylS00PEdFSExijfHxGX38tHmiSnI1IeDtuQoqIlbucq6RGNnapAtuE7BewH2VF4kOFJc+pAgAEJIiS0HrZgnEUdJckJlFjvNWvOU4av2VZq91tEOhVKnwa+OWdIh/dDeXakcyxzDXve+g2hEfSTDkT4V0l5QPtTpErXLf3CAZktBo7oKNfrS4CotQ2K6+c373W0imMNyqKJqgkmDCvo5VMo5sh4g3nk4+sGYPK0vlayg6Pl0uHUqWAVNybdFPdTuPMTz5AF0C0Apn2Hp7EJnjbdEM8ZFrHBjdvfg6yrh4Krq6RY507H6wWfYvP2mGKPwZfVKQmEvUbpELB2XqFqd9kcH8qEtSPec+TRCOTaURMsG7qhw0v1ks/9KVWJczvIOHiQgVxVKWtxN01v4cEW6NOYi5iDXqFJ1Z/+qbR1vvkhuP4EvDtJYrGXqVq8QCqWP5SkZELC59f6DqiC2t0/sKOo7ZNznRXnoIl4DIGJtsU/LdwmSTA5xmaXzHRQy0xOSpn4HGJkfDePiGq3wQ09J694g49KOq6+XLANZpHCRTar7L2j+v9qfEJjR/KflXpM3fvGzX2TujNHsQ0hH7q/ZEP+INoqGZ2e1Mjd6G5lZeOwOelqYyZ6cvkJirvHiIzodu70r19gG4In7wPrEVfpw8ss0SAoBKv30m4uOD/itrnnu+h4+PfhzOR9c3iRcPZUdG4sn8HBCkqB5u6fhcayu57zDwsKPSn6BZAPuiTahneX3Wh83ZZ9mD1BuyrZ66fJ9+ZeoQ5CMfJYM2yuVBf7na4ipDZfNk3P266VVahjrffZZbcpdMzGetqUfq8KAyzewteB1nAWp1yl6CnPeJFwqq409roG/uq9l7tL1mAsI0oUqcwlUvoUSoZeTivytR46W4LCx3HhZAg4UilNDM4I9zBHCNCpiSUZddUC0Tx4yKn+faomr+S5wCqFlbbfMCiv7l566A5DDmJqkGzMMmhuwPxgfj2/iIBPeJDhOlWTmANdlgJaX2bc1n7hLvt+GaUzwOUrtxW685gia2GApxPKnTkXrmd6jJJq7s5h9mZDhtYftAMP6nuJOU6RJfZnJ9A0+B5hTHeQ+jG6SsyOBcHu6Jw0Vg9nsbgdC8tPDopLf3ayYiupeJFxGZ4mksWIq5w/PqoeQb9Ac+mDMrDyGjt2QZDQ/+vfyDEURifW3HY2F3VXYnEHx5OW/J0z4SiF8Ca9cBEhv2zEtgWhBuEjJI/1jlQLFJsJ03/zPibLSgQLb7Y4mx0vTMZSwxe+Y2qPV44xcpjNklQFi3iRi7gMyQast8oeiX23iO1pmJe2XR4uEURV15tFIlk/avvaY79C7NWWj7tXEv0T/MlPJeC/YZwYpAfXCvBg9ZSTGK3hyIGLR3zAb0v8WXHANopKeU3o/sm0yxdF2E3rkhUDQo2IEjM+FygmcV8SGGm9TvVReGKUsFctKROSGtOueJQ3w8lJgA4LRGYSNU/hzzAN3cEspIn1yIinsbxf+Brd1e8w8Oygl1Ep12sMwTGbukJukpTqYZ92Aqt7HgG5uJ3Gpk7uTK6HANq9enV9rAIVdv5GstNVMLpOt+9finxpnNkz2CiosPcfrJVf934a++NlkAXKjdIKY8BueJPild7hUUqWRK56b5mgGUcan4GlysyGDp7yBmU+JWrLq6mSYtfWPiswu0kZZ3uubq5ET6vxQ1h6jT5plHfJ7LuebYITszqxHy3YYKHB3fh1ifJGENgkR9OrDYiQVymFolFJhH6/73JiPNo6XHiDjtSbo7iqtem0cz0OEZ2y1sjlb6uJBeyesMpvofsfwgXpE0u7Xra+I61G+8Vk1Gy9fGZuFZQ/qrF7RYIHArKfw9vf3g9J5U2KuaXNN9XNexszijfXzorWL/MzwFjWDZgXTaSPrdIKm6kkK3ErIwTtVY0hQEHKeIP4OaNUHDVPFLr05E2lfnoLeYx/XXwxXE1EfBK8DjsxM1B6q/6CAEuJwla4Q6M9OJqGRHLUZGGWbcE60PzDC0TfzzFc3Wfxm7j9IvaRagg0sSTyWgdPqg3tv76iDwzOHaBbaQrxMroHpxyCXKHa34r8vG/Vr5jaeJJZIsN2FT5oYjdsC17un7b+2WijsAzCcEQE5AVsktLdO96VvNYPwS66Nu3MZuBcNjZiyutfzw7ohVmc8mOxnvccXAFEoNjTzzWOOQ/t/PZQ1wfteNygKLfI0q0GsxXkEsapeAYyAANTl7KrHHbUq391BaKRfaC9uP2Qxq/2T1SOVhMn51WwRrpXzMvfn6loTGlmEBgsGYbL4KzzlEeva7GpiyPhAcPSdFROZbRHQWu6rWnccLc=',
-      squish:  'data:audio/ogg;codecs=opus;base64,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',
-      squeeze: 'data:audio/ogg;codecs=opus;base64,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',
-    };
-  }
-
-  async init() {
-    if (this._ready) return;
-    try {
-      this._ctx = new (window.AudioContext || window.webkitAudioContext)();
-      await Promise.all(Object.entries(this._sounds).map(async ([name, uri]) => {
-        try {
-          const resp = await fetch(uri);
-          const arrayBuf = await resp.arrayBuffer();
-          this._buffers[name] = await this._ctx.decodeAudioData(arrayBuf);
-        } catch (e) { console.warn(`[RealSound] Failed to decode ${name}:`, e); }
-      }));
-      this._ready = true;
-    } catch (e) { console.warn('[RealSound] Init failed:', e); }
-  }
-
-  _play(name, volume = 0.7, rate = 1.0) {
-    if (!this._ready || !this._buffers[name]) return null;
-    if (this._ctx.state === 'suspended') this._ctx.resume();
-    const source = this._ctx.createBufferSource();
-    source.buffer = this._buffers[name];
-    source.playbackRate.value = rate;
-    const gain = this._ctx.createGain();
-    gain.gain.value = volume;
-    source.connect(gain);
-    gain.connect(this._ctx.destination);
-    source.start(0);
-    return { source, gain };
-  }
-
-  playCrack() {
-    const rate = 0.85 + Math.random() * 0.35;
-    this._play('crack', 0.8, rate);
-  }
-
-  playSquish() {
-    const rate = 0.9 + Math.random() * 0.2;
-    this._play('squish', 0.7, rate);
-  }
-
-  startSqueeze() {
-    if (this._activeSqueezeSource) return;
-    if (!this._ready || !this._buffers.squeeze) return;
-    if (this._ctx.state === 'suspended') this._ctx.resume();
-    const source = this._ctx.createBufferSource();
-    source.buffer = this._buffers.squeeze;
-    source.loop = true;
-    source.playbackRate.value = 1.0;
-    const gain = this._ctx.createGain();
-    gain.gain.setValueAtTime(0, this._ctx.currentTime);
-    gain.gain.linearRampToValueAtTime(0.5, this._ctx.currentTime + 0.15);
-    source.connect(gain);
-    gain.connect(this._ctx.destination);
-    source.start(0);
-    this._activeSqueezeSource = source;
-    this._squeezeGain = gain;
-  }
-
-  stopSqueeze() {
-    if (!this._activeSqueezeSource || !this._squeezeGain) return;
-    try {
-      this._squeezeGain.gain.linearRampToValueAtTime(0, this._ctx.currentTime + 0.2);
-      const src = this._activeSqueezeSource;
-      setTimeout(() => { try { src.stop(); } catch(e){} }, 250);
-    } catch(e) {}
-    this._activeSqueezeSource = null;
-    this._squeezeGain = null;
-  }
-
-  updateSqueezeIntensity(pressure) {
-    if (!this._squeezeGain) return;
-    const vol = 0.2 + pressure * 0.6;
-    this._squeezeGain.gain.setTargetAtTime(vol, this._ctx.currentTime, 0.05);
-  }
-}
-
-const realSound = new RealSoundEngine();
-['pointerdown', 'touchstart', 'keydown'].forEach(evt =>
-  document.addEventListener(evt, () => realSound.init(), { once: true, passive: true })
-);
-
-
 
 // =============================================================================
 // PART 3 — PHYSICS CLASSES
@@ -1489,9 +1378,8 @@ class SoftBody {
 
   /** Begin a touch/mouse interaction. */
   pointerDown(x, y) {
-    this._touch = { x, y, px: x, py: y, active: true, startTime: performance.now() };
-    this.pressure = 0.15; // Start low, build up
-    this._pressureTarget = 1;
+    this._touch = { x, y, px: x, py: y, active: true };
+    this.pressure = 1;
   }
 
   /** Update touch position and apply drag forces this frame. */
@@ -1600,14 +1488,9 @@ class SoftBody {
       p.y += p.vy;
     });
 
-    // ── 3. Pressure buildup & decay ────────────────────────────────────
-    if (this._touch && this._touch.active) {
-      // Pressure builds up while holding — starts slow, ramps up
-      const holdTime = (performance.now() - (this._touch.startTime || 0)) / 1000;
-      this._pressureTarget = Math.min(1.0, 0.2 + holdTime * 0.5);
-      this.pressure += (this._pressureTarget - this.pressure) * 0.08;
-    } else {
-      this.pressure *= 0.88;
+    // ── 3. Pressure decay & stretch calculation ──────────────────────────
+    if (!this._touch || !this._touch.active) {
+      this.pressure *= 0.92;
       if (this.pressure < 0.01) this.pressure = 0;
     }
 
@@ -1632,84 +1515,58 @@ class SoftBody {
    * filling bulges outward at nearby mesh holes.
    */
   _updateMeshBulges() {
-    const t = performance.now() / 1000;
-    if (!this._touch || !this._touch.active) {
-      // Decay all bulges with satisfying bounce-back
+    if (!this._touch) {
+      // Decay all bulges when not touching
       this.mesh.forEach(node => {
-        node.pressure *= 0.82;
-        node.vel = (node.vel || 0) * 0.8 - node.pressure * 0.02;
-        node.pressure = Math.max(0, node.pressure + node.vel * 0.1);
-        node.bulging = node.pressure > 0.05;
+        node.pressure *= 0.88;
+        node.bulging   = node.pressure > 0.08;
       });
       this.bulges = this.mesh
         .filter(n => n.bulging)
         .map(n => ({
           x:        this.cx + n.lx,
           y:        this.cy + n.ly,
-          size:     this.radius * 0.16 * n.pressure,
+          size:     this.radius * 0.09 * n.pressure,
           pressure: n.pressure,
-          wobble:   Math.sin(t * 8 + n.lx * 3) * 0.15 * n.pressure,
         }));
       return;
     }
 
-    const tx = this._touch.x;
-    const ty = this._touch.y;
+    const tx         = this._touch.x;
+    const ty         = this._touch.y;
     const touchLocal = { x: tx - this.cx, y: ty - this.cy };
-    const touchDist = Math.hypot(touchLocal.x, touchLocal.y);
+    const touchDist  = Math.hypot(touchLocal.x, touchLocal.y);
 
-    // How deep the press is (0=edge, 1=center)
-    const squeeze = Math.max(0, 1 - touchDist / (this.radius * 1.1));
-    // Combine with held pressure for dramatic buildup
-    const totalPressure = squeeze * this.pressure;
+    // Inward squeeze depth (0 = no squeeze, 1 = max squeeze)
+    const squeeze = Math.max(0, 1 - touchDist / this.radius);
 
-    this.mesh.forEach((node, idx) => {
-      const dx = node.lx - touchLocal.x;
-      const dy = node.ly - touchLocal.y;
-      const d  = Math.hypot(dx, dy);
-      const nodeDist = Math.hypot(node.lx, node.ly);
+    this.mesh.forEach(node => {
+      // Distance from this mesh node to the touch (local coords)
+      const dx  = node.lx - touchLocal.x;
+      const dy  = node.ly - touchLocal.y;
+      const d   = Math.hypot(dx, dy);
 
-      // Near the press: filling gets pushed away
-      // Far from press / on opposite side: filling bulges OUT through mesh
-      const nearPress = Math.max(0, 1 - d / (this.radius * 0.7));
-      
-      // Opposite-side bulging (volume preservation — squeeze one side, bulges on other)
-      const oppAngle  = Math.atan2(-touchLocal.y, -touchLocal.x);
-      const nodeAngle = Math.atan2(node.ly, node.lx);
-      let angleDiff   = Math.abs(oppAngle - nodeAngle);
+      // Pressure is highest opposite to the touch point
+      const oppAngle   = Math.atan2(-touchLocal.y, -touchLocal.x);
+      const nodeAngle  = Math.atan2(node.ly, node.lx);
+      let   angleDiff  = Math.abs(oppAngle - nodeAngle);
       if (angleDiff > Math.PI) angleDiff = Math.PI * 2 - angleDiff;
-      const oppBonus  = Math.max(0, 1 - angleDiff / (Math.PI * 0.7));
+      const angleBonus = Math.max(0, 1 - angleDiff / Math.PI);
 
-      // Edge nodes bulge more (they're closer to mesh surface)
-      const edgeFactor = Math.min(1, nodeDist / (this.radius * 0.6));
-
-      // Side bulging (perpendicular to press direction)
-      const pressAngle = Math.atan2(touchLocal.y, touchLocal.x);
-      const perpAngle1 = pressAngle + Math.PI / 2;
-      const perpAngle2 = pressAngle - Math.PI / 2;
-      let perpDiff1 = Math.abs(nodeAngle - perpAngle1);
-      let perpDiff2 = Math.abs(nodeAngle - perpAngle2);
-      if (perpDiff1 > Math.PI) perpDiff1 = Math.PI * 2 - perpDiff1;
-      if (perpDiff2 > Math.PI) perpDiff2 = Math.PI * 2 - perpDiff2;
-      const sideBonus = Math.max(0, 1 - Math.min(perpDiff1, perpDiff2) / (Math.PI * 0.5)) * 0.6;
-
-      const targetPressure = totalPressure * (oppBonus * 1.2 + sideBonus) * edgeFactor * 1.5;
-      
-      // Smooth with momentum
-      node.vel = (node.vel || 0) * 0.85 + (targetPressure - node.pressure) * 0.12;
-      node.pressure = Math.max(0, node.pressure + node.vel);
-      node.bulging = node.pressure > 0.06;
+      const targetPressure = squeeze * angleBonus * (1 - d / (this.radius * 1.5)) * 1.4;
+      // Smooth pressure transitions
+      node.pressure    = node.pressure * 0.7 + Math.max(0, targetPressure) * 0.3;
+      node.bulging     = node.pressure > 0.10;
     });
 
-    // Export bulge list — bigger, juicier
+    // Export bulge list for the renderer
     this.bulges = this.mesh
       .filter(n => n.bulging)
-      .map((n, i) => ({
+      .map(n => ({
         x:        this.cx + n.lx,
         y:        this.cy + n.ly,
-        size:     this.radius * 0.20 * Math.min(n.pressure, 1.2),
+        size:     this.radius * 0.12 * Math.min(n.pressure, 1),
         pressure: n.pressure,
-        wobble:   Math.sin(t * 6 + i * 1.7) * 0.12 * n.pressure,
       }));
   }
 
@@ -2314,7 +2171,7 @@ class App {
     if (this.category.id === 'wakkuball') {
       label.textContent = this.playPhase === 0
         ? '탁탁! 왁스를 깨보세요 🥚'
-        : '꾹꾹 눌러보세요! 메쉬 사이로 삐져나와요 🫧';
+        : '꾹꾹! 메쉬볼을 눌러보세요 🟢';
     }
     this.ui.appendChild(label);
   }
@@ -2387,28 +2244,21 @@ class App {
         const dx = x - this.wax.cx, dy = y - this.wax.cy;
         if (Math.hypot(dx, dy) < this.wax.radius * 1.1) {
           this.wax.tap(x, y);
-          // Real crack sound + synth layered
-          realSound.playCrack();
+          // Progress-based cracking sounds for satisfying ASMR escalation
           const prog = this.wax.progress();
           const tone = this.variant?.tone || 'crisp';
           if (prog < 0.30) {
             this.audio.crack(tone);
-            this._haptic(15);
+            this._haptic(12);
           } else if (prog < 0.70) {
             this.audio.bigCrack(tone);
-            this._haptic(25);
-            // Particles on bigger cracks
-            this.particles.emit(x, y, 8, { color: [this.variant?.wax || '#f5d76e', '#fff8dc'], speed: 3, life: 25, type: 'sparkle' });
+            this._haptic(22);
           } else {
             this.audio.crack(tone);
             setTimeout(() => this.audio.pop(), 55);
-            this._haptic(35);
-            this.particles.emit(x, y, 15, { color: [this.variant?.wax || '#f5d76e', '#fffff0'], speed: 4, life: 30, type: 'sparkle' });
+            this._haptic(30);
           }
           if (this.wax.done()) {
-            // Big celebration when wax fully cracks
-            realSound.playSquish();
-            this.particles.emit(this.CX, this.CY, 40, { color: ['#ff6eb4','#ffce54','#a29bfe','#55efc4'], speed: 5, life: 50, type: 'sparkle' });
             setTimeout(() => { this.playPhase = 1; this._updatePhaseLabel(); }, 600);
           }
         }
@@ -2416,24 +2266,11 @@ class App {
       if (this.body) this.body.pointerDown(x, y);
       // Type-specific press sounds
       const catId = this.category?.id;
-      if (catId === 'wakkuball' && this.playPhase === 1) {
-        realSound.playSquish();
-        realSound.startSqueeze();
-        this.audio.play('squeeze');
-        this._haptic(18);
-      } else if (catId === 'squishy') {
-        this.audio.play('foam');
-        this._haptic(12);
-      } else if (catId === 'slime') {
-        this.audio.play('squeeze');
-        this._haptic(10);
-      } else if (catId === 'mallangi') {
-        this.audio.play('squeeze');
-        this._haptic(10);
-      } else {
-        this.audio.play('squeeze');
-        this._haptic(10);
-      }
+      if (catId === 'squishy') this.audio.play('foam');
+      else if (catId === 'slime') this.audio.play('squeeze');
+      else if (catId === 'mallangi') this.audio.play('squeeze');
+      else this.audio.play('squeeze');
+      this._haptic(10);
     }
   }
 
@@ -2441,31 +2278,10 @@ class App {
     if (this.state === 'making' && this.makeGesture) {
       this.makeProgress = Math.min(1, this.makeProgress + 0.012);
       this._updateProgressBar();
-      // Sound during making
-      if (Math.random() < 0.08) this.audio.stir();
       if (this.makeProgress >= 1) { this.makeGesture = false; this._advanceMakeStep(); }
     }
     if (this.state === 'playing' && this.body) {
-      if (this.category.id === 'wakkuball' && this.playPhase === 1) {
-        this.body.pointerMove(x, y);
-        // Update squeeze loop intensity based on pressure
-        realSound.updateSqueezeIntensity(this.body.pressure || 0);
-        // Haptic pulses during squeeze proportional to pressure
-        if (Math.random() < 0.12 * (this.body.pressure || 0)) {
-          this._haptic(8 + Math.round((this.body.pressure || 0) * 12));
-          this.audio.meshCreak();
-        }
-        // Particles from bulges
-        if (this.body.bulges && Math.random() < 0.03 * (this.body.pressure || 0)) {
-          const b = this.body.bulges[Math.floor(Math.random() * this.body.bulges.length)];
-          if (b && b.size > 3) {
-            this.particles.emit(b.x, b.y, 3, {
-              color: [_lighten(this.body.color, 50), this.body.color],
-              speed: 1.5, life: 18, type: 'circle'
-            });
-          }
-        }
-      } else if (this.category.id === 'mallangi') {
+      if (this.category.id === 'mallangi') {
         this.body.pointerMove(x, y);
         if (Math.random() < 0.08) this.audio.stretch(0.2);
       } else if (this.category.id === 'slime') {
@@ -2483,16 +2299,8 @@ class App {
     if (this.state === 'playing' && this.body) {
       this.body.pointerUp();
       const catId = this.category?.id;
-      if (catId === 'wakkuball' && this.playPhase === 1) {
-        realSound.stopSqueeze();
-        // Satisfying release pop
-        this.audio.pop();
-        this._haptic(12);
-      } else if (catId === 'mallangi') {
-        this.audio.pop();
-      } else if (catId === 'squishy') {
-        this.audio.foam();
-      }
+      if (catId === 'mallangi') this.audio.pop();
+      else if (catId === 'squishy') this.audio.foam();
     }
   }
 
@@ -3054,7 +2862,7 @@ class App {
   }
 
   // ──────────────────────────────────────────────────────────
-  // WAKKUBALL (MESH) RENDERER  ← UPGRADED for realistic feel
+  // WAKKUBALL (MESH) RENDERER  ← most important visual
   // ──────────────────────────────────────────────────────────
   _drawWakkuball() {
     if (!this.body) return;
@@ -3062,244 +2870,149 @@ class App {
     const body = this.body;
     const t    = performance.now() / 1000;
     const cx   = body.cx, cy = body.cy, r = body.radius;
-    const press = body.pressure || 0;
 
-    // ── Idle breathing animation ─────────────────────────────
-    const breathe = 1 + Math.sin(t * 1.8) * 0.008;
+    this._drawShadow(cx, cy, r);
 
-    // ── Shadow (reacts to press) ─────────────────────────────
-    const shadowScale = 1 + press * 0.15;
-    this._drawShadow(cx, cy + press * r * 0.06, r * shadowScale);
-
-    // ── Inner filling — juicy, rich gradient ─────────────────
+    // ── Inner filling (soft body silhouette) ─────────────────
     ctx.save();
     ctx.beginPath();
     body.buildPath(ctx);
-    const fillG = ctx.createRadialGradient(
-      cx - r * 0.25, cy - r * 0.25, r * 0.05,
-      cx + r * 0.1, cy + r * 0.1, r * 1.1
-    );
-    fillG.addColorStop(0,    _lighten(body.color, 65));
-    fillG.addColorStop(0.2,  _lighten(body.color, 35));
-    fillG.addColorStop(0.5,  body.color);
-    fillG.addColorStop(0.8,  _darken(body.color, 25));
-    fillG.addColorStop(1,    _darken(body.color, 50));
+    const fillG = ctx.createRadialGradient(cx - r * 0.28, cy - r * 0.28, 0, cx, cy, r * 1.05);
+    fillG.addColorStop(0,   _lighten(body.color, 55));
+    fillG.addColorStop(0.45, body.color);
+    fillG.addColorStop(1,   _darken(body.color, 45));
     ctx.fillStyle = fillG;
     ctx.fill();
-
-    // ── Inner texture — subtle wax chunks ────────────────────
-    ctx.globalAlpha = 0.12;
-    for (let i = 0; i < 14; i++) {
-      const seed = i * 2.618;
-      const tx_ = cx + Math.cos(seed * 7.3) * r * 0.55;
-      const ty_ = cy + Math.sin(seed * 5.1) * r * 0.55;
-      const tr  = r * (0.04 + (i % 3) * 0.025);
-      ctx.beginPath();
-      ctx.arc(tx_, ty_, tr, 0, Math.PI * 2);
-      ctx.fillStyle = i % 2 === 0 ? _lighten(body.color, 40) : _darken(body.color, 20);
-      ctx.fill();
-    }
-    ctx.globalAlpha = 1;
     ctx.restore();
 
-    // ══════════════════════════════════════════════════════════
-    // MESH BULGES — filling oozing through mesh holes
-    // ══════════════════════════════════════════════════════════
-    if (body.bulges && body.bulges.length > 0) {
-      // Sort bulges by size for proper layering
-      const sortedBulges = [...body.bulges].sort((a, b) => a.size - b.size);
+    // ── Mesh bulge effect ────────────────────────────────────
+    // Where the user presses, filling pushes through mesh holes
+    if (this.pressActive && this.pressPoint) {
+      const px    = this.pressPoint.x;
+      const py    = this.pressPoint.y;
+      const pdist = Math.hypot(px - cx, py - cy);
+      const press = body.pressure || 0; // 0‥1
 
-      sortedBulges.forEach((bulge, i) => {
-        if (bulge.size < 1) return;
-        const bx = bulge.x;
-        const by = bulge.y;
-        const br = bulge.size * (1.3 + (bulge.wobble || 0));
-        const bp = Math.min(bulge.pressure, 1.2);
+      if (pdist < r * 1.15 && press > 0.05) {
+        const bulgeRadius  = r * 0.18;
+        const bulgeCount   = 7;
+        const spreadRadius = r * 0.55 * press;
+        const pAngle       = Math.atan2(py - cy, px - cx);
 
-        // Direction from center — bulges push outward
-        const dirX = bx - cx;
-        const dirY = by - cy;
-        const dirLen = Math.hypot(dirX, dirY) || 1;
-        const nx = dirX / dirLen;
-        const ny = dirY / dirLen;
+        for (let i = 0; i < bulgeCount; i++) {
+          const ba   = pAngle + (i / bulgeCount) * Math.PI * 2;
+          const bDist = spreadRadius * (0.55 + 0.45 * (i % 2));
+          const bx   = cx + Math.cos(ba) * bDist;
+          const by_  = cy + Math.sin(ba) * bDist;
+          const br   = bulgeRadius * press * (0.7 + 0.3 * Math.sin(t * 6 + i));
 
-        // Push bulge outward based on pressure
-        const pushDist = br * 0.6 * bp;
-        const obx = bx + nx * pushDist;
-        const oby = by + ny * pushDist;
-
-        // ── Outer bulge dome (pushed through mesh) ───────────
-        if (bp > 0.15) {
-          const outerR = br * 1.1;
+          // Clip to body silhouette for inner bulges
           ctx.save();
-          // Glossy wet dome
-          const domeG = ctx.createRadialGradient(
-            obx - outerR * 0.25, oby - outerR * 0.3, outerR * 0.05,
-            obx, oby, outerR
-          );
-          domeG.addColorStop(0,   _lighten(body.color, 75));
-          domeG.addColorStop(0.2, _lighten(body.color, 45));
-          domeG.addColorStop(0.55, body.color);
-          domeG.addColorStop(1,   _darken(body.color, 35));
-
           ctx.beginPath();
-          // Slightly oval — squished against mesh
-          ctx.ellipse(obx, oby, outerR, outerR * 0.85, Math.atan2(ny, nx), 0, Math.PI * 2);
-          ctx.fillStyle = domeG;
-          ctx.shadowColor = _darken(body.color, 40);
-          ctx.shadowBlur = outerR * 0.5;
-          ctx.shadowOffsetX = nx * 2;
-          ctx.shadowOffsetY = ny * 2;
-          ctx.fill();
+          body.buildPath(ctx);
+          ctx.clip();
 
-          // Specular on each bulge dome
-          ctx.shadowColor = 'transparent';
-          ctx.shadowBlur = 0;
-          const specG = ctx.createRadialGradient(
-            obx - outerR * 0.3, oby - outerR * 0.35, 0,
-            obx - outerR * 0.15, oby - outerR * 0.2, outerR * 0.5
-          );
-          specG.addColorStop(0,   'rgba(255,255,255,0.75)');
-          specG.addColorStop(0.4, 'rgba(255,255,255,0.2)');
-          specG.addColorStop(1,   'rgba(255,255,255,0)');
+          // Bulge ball
+          const bg = ctx.createRadialGradient(bx - br * 0.3, by_ - br * 0.3, 0, bx, by_, br);
+          bg.addColorStop(0,   _lighten(body.color, 65));
+          bg.addColorStop(0.5, _lighten(body.color, 25));
+          bg.addColorStop(1,   _darken(body.color, 20));
           ctx.beginPath();
-          ctx.ellipse(obx, oby, outerR, outerR * 0.85, Math.atan2(ny, nx), 0, Math.PI * 2);
-          ctx.fillStyle = specG;
+          ctx.arc(bx, by_, br, 0, Math.PI * 2);
+          ctx.fillStyle = bg;
           ctx.fill();
           ctx.restore();
-        }
 
-        // ── Inner bulge (visible under mesh) ─────────────────
-        ctx.save();
-        ctx.beginPath();
-        body.buildPath(ctx);
-        ctx.clip();
-        const innerG = ctx.createRadialGradient(bx - br * 0.2, by - br * 0.2, 0, bx, by, br * 1.2);
-        innerG.addColorStop(0,   _lighten(body.color, 55));
-        innerG.addColorStop(0.4, _lighten(body.color, 20));
-        innerG.addColorStop(1,   body.color);
-        ctx.beginPath();
-        ctx.arc(bx, by, br * 1.2, 0, Math.PI * 2);
-        ctx.fillStyle = innerG;
-        ctx.globalAlpha = 0.75;
-        ctx.fill();
-        ctx.restore();
-      });
+          // Outer bulge (pushing through mesh holes)
+          const outerStrength = Math.max(0, 1 - pdist / r) * press;
+          if (outerStrength > 0.1) {
+            const obr = br * 0.65 * outerStrength;
+            const obx = cx + Math.cos(ba) * (r * 0.93);
+            const oby = cy + Math.sin(ba) * (r * 0.93);
+            const obg = ctx.createRadialGradient(obx - obr * 0.3, oby - obr * 0.3, 0, obx, oby, obr);
+            obg.addColorStop(0,   _lighten(body.color, 70));
+            obg.addColorStop(0.6, body.color);
+            obg.addColorStop(1,   _darken(body.color, 30));
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(obx, oby, obr, 0, Math.PI * 2);
+            ctx.fillStyle = obg;
+            ctx.shadowColor = body.color;
+            ctx.shadowBlur  = 8;
+            ctx.fill();
+            ctx.restore();
+          }
+        }
+      }
     }
 
-    // ══════════════════════════════════════════════════════════
-    // MESH NET — realistic elastic netting
-    // ══════════════════════════════════════════════════════════
+    // ── Mesh net (hexagonal grid overlay) ────────────────────
     ctx.save();
     ctx.beginPath();
     body.buildPath(ctx);
     ctx.clip();
 
-    const meshSize = r * 0.16;
-    const meshCols = Math.ceil(r * 2.4 / (meshSize * 1.5)) + 3;
-    const meshRows = Math.ceil(r * 2.4 / (meshSize * Math.sqrt(3))) + 3;
-    const sqrt3 = Math.sqrt(3);
+    const meshSize = r * 0.18;
+    const meshCols = Math.ceil(r * 2.2 / (meshSize * 1.5)) + 2;
+    const meshRows = Math.ceil(r * 2.2 / (meshSize * Math.sqrt(3))) + 2;
 
-    for (let row = -2; row < meshRows; row++) {
-      for (let col = -2; col < meshCols; col++) {
-        let hx = cx - r * 1.1 + col * meshSize * 1.5;
-        let hy = cy - r * 1.1 + row * meshSize * sqrt3 + (col % 2 === 0 ? 0 : meshSize * sqrt3 * 0.5);
+    for (let row = -1; row < meshRows; row++) {
+      for (let col = -1; col < meshCols; col++) {
+        const hx   = cx - r + col * meshSize * 1.5;
+        const hy   = cy - r + row * meshSize * Math.sqrt(3) + (col % 2 === 0 ? 0 : meshSize * Math.sqrt(3) * 0.5);
         const dist = Math.hypot(hx - cx, hy - cy);
-        if (dist > r * 1.08) continue;
+        if (dist > r * 1.05) continue;
 
-        // ── Mesh stretching near press point ─────────────────
-        let stretchFactor = 1.0;
-        let lineAlpha = 0.45;
-        if (this.pressActive && this.pressPoint && press > 0.05) {
-          const pdist = Math.hypot(hx - this.pressPoint.x, hy - this.pressPoint.y);
-          const influenceR = r * 0.65;
-          if (pdist < influenceR) {
-            const str = 1 - pdist / influenceR;
-            stretchFactor = 1 + str * press * 0.45;
-            lineAlpha = Math.max(0.08, lineAlpha - str * press * 0.35);
-            // Push mesh outward from press
-            const dx = hx - this.pressPoint.x;
-            const dy = hy - this.pressPoint.y;
-            const dlen = Math.hypot(dx, dy) || 1;
-            hx += (dx / dlen) * str * press * meshSize * 0.3;
-            hy += (dy / dlen) * str * press * meshSize * 0.3;
-          }
-        }
-
-        const hexR = meshSize * 0.52 * stretchFactor;
-        const lineW = Math.max(0.6, 2.2 / stretchFactor);
-
-        // Dark mesh line (shadow)
+        // Mesh strand
         ctx.beginPath();
-        this._hexPath(ctx, hx, hy, hexR);
-        ctx.strokeStyle = `rgba(30,20,10,${lineAlpha})`;
-        ctx.lineWidth = lineW + 0.8;
+        this._hexPath(ctx, hx, hy, meshSize * 0.5);
+        ctx.strokeStyle = 'rgba(0,0,0,0.28)';
+        ctx.lineWidth   = 1.8;
         ctx.stroke();
-
-        // Light mesh line (highlight)
-        ctx.beginPath();
-        this._hexPath(ctx, hx, hy, hexR);
-        ctx.strokeStyle = `rgba(255,255,240,${lineAlpha * 0.4})`;
-        ctx.lineWidth = lineW * 0.5;
+        ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+        ctx.lineWidth   = 0.7;
         ctx.stroke();
       }
     }
     ctx.restore();
 
-    // ── Inner fruit emoji decoration ─────────────────────────
+    // ── Inner fruit decoration ──────────────────────────────
     if (this.variant?.emoji) {
       ctx.save();
       ctx.beginPath();
       body.buildPath(ctx);
       ctx.clip();
-      ctx.font = `${Math.round(r * 0.5)}px sans-serif`;
+      ctx.font = `${Math.round(r * 0.55)}px sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.globalAlpha = 0.10 + press * 0.06;
-      ctx.fillText(this.variant.emoji, cx - r * 0.18, cy - r * 0.12);
-      ctx.fillText(this.variant.emoji, cx + r * 0.22, cy + r * 0.18);
+      ctx.globalAlpha = 0.12;
+      ctx.fillText(this.variant.emoji, cx - r*0.2, cy - r*0.15);
+      ctx.fillText(this.variant.emoji, cx + r*0.25, cy + r*0.2);
       ctx.restore();
     }
 
-    // ── 3D sphere shading ────────────────────────────────────
+    // ── Mesh 3-D shading ─────────────────────────────────────
     ctx.save();
     ctx.beginPath();
     body.buildPath(ctx);
-    const meshShade = ctx.createRadialGradient(
-      cx - r * 0.3, cy - r * 0.3, r * 0.1,
-      cx + r * 0.1, cy + r * 0.1, r * 1.05
-    );
-    meshShade.addColorStop(0,   'rgba(255,255,255,0.12)');
-    meshShade.addColorStop(0.4, 'rgba(255,255,255,0.0)');
-    meshShade.addColorStop(0.75,'rgba(0,0,0,0.15)');
-    meshShade.addColorStop(1,   'rgba(0,0,0,0.45)');
+    const meshShade = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.3, 0, cx, cy, r);
+    meshShade.addColorStop(0,   'rgba(255,255,255,0.10)');
+    meshShade.addColorStop(0.6, 'rgba(0,0,0,0.0)');
+    meshShade.addColorStop(1,   'rgba(0,0,0,0.40)');
     ctx.fillStyle = meshShade;
     ctx.fill();
     ctx.restore();
 
-    // ── Main specular highlight ──────────────────────────────
+    // ── Specular highlight ───────────────────────────────────
+    const spec = ctx.createRadialGradient(cx - r * 0.33, cy - r * 0.40, 0, cx - r * 0.28, cy - r * 0.33, r * 0.38);
+    spec.addColorStop(0,   'rgba(255,255,255,0.60)');
+    spec.addColorStop(0.5, 'rgba(255,255,255,0.12)');
+    spec.addColorStop(1,   'rgba(255,255,255,0)');
     ctx.save();
     ctx.beginPath();
     body.buildPath(ctx);
-    const spec = ctx.createRadialGradient(
-      cx - r * 0.30, cy - r * 0.38, 0,
-      cx - r * 0.22, cy - r * 0.28, r * 0.42
-    );
-    spec.addColorStop(0,   'rgba(255,255,255,0.70)');
-    spec.addColorStop(0.3, 'rgba(255,255,255,0.25)');
-    spec.addColorStop(0.6, 'rgba(255,255,255,0.05)');
-    spec.addColorStop(1,   'rgba(255,255,255,0)');
     ctx.fillStyle = spec;
     ctx.fill();
-    ctx.restore();
-
-    // ── Wet glossy rim light ─────────────────────────────────
-    ctx.save();
-    ctx.beginPath();
-    body.buildPath(ctx);
-    ctx.strokeStyle = `rgba(255,255,255,${0.12 + press * 0.08})`;
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
     ctx.restore();
   }
 
