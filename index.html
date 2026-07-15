@@ -11,7 +11,7 @@
 html, body {
   width:100%; height:100%;
   overflow:hidden;
-  background:#12080c;
+  background:#f0ebe6;
   font-family: -apple-system, 'Segoe UI', sans-serif;
   touch-action:none;
   -webkit-touch-callout:none;
@@ -50,21 +50,21 @@ canvas {
 .title {
   font-size:2.2em;
   font-weight:800;
-  color:#fff;
+  color:#3a2a2a;
   margin-bottom:0.2em;
   letter-spacing:-0.02em;
-  text-shadow: 0 0 30px rgba(255,100,100,0.3);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.06);
 }
 .subtitle {
   font-size:0.9em;
-  color:rgba(255,255,255,0.4);
+  color:rgba(80,60,60,0.5);
   margin-bottom:2em;
 }
 
 .ball-card {
   width:280px;
-  background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,60,60,0.06));
-  border:1px solid rgba(255,255,255,0.1);
+  background: linear-gradient(135deg, rgba(255,255,255,0.7), rgba(255,240,240,0.5));
+  border:1px solid rgba(0,0,0,0.06);
   border-radius:24px;
   padding:28px 24px;
   text-align:center;
@@ -72,18 +72,18 @@ canvas {
   transition: transform 0.2s, background 0.2s;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  box-shadow: 0 0 40px rgba(220,40,40,0.08), inset 0 0 30px rgba(255,255,255,0.02);
+  box-shadow: 0 2px 20px rgba(0,0,0,0.06), 0 0 40px rgba(220,40,40,0.04);
 }
 .ball-card:active {
   transform:scale(0.96);
-  background: rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.85);
 }
 .ball-card .emoji {
   font-size:3.5em;
   margin-bottom:0.2em;
   display:block;
   animation: bobEmoji 3s ease-in-out infinite;
-  filter: drop-shadow(0 0 12px rgba(220,40,40,0.4));
+  filter: drop-shadow(0 2px 8px rgba(220,40,40,0.25));
 }
 @keyframes bobEmoji {
   0%,100% { transform: translateY(0) scale(1); }
@@ -92,23 +92,23 @@ canvas {
 .ball-card .name {
   font-size:1.3em;
   font-weight:700;
-  color:#fff;
+  color:#3a2a2a;
   margin-bottom:0.3em;
 }
 .ball-card .desc {
   font-size:0.82em;
-  color:rgba(255,255,255,0.45);
+  color:rgba(80,60,60,0.55);
   line-height:1.5;
 }
 .tap-hint {
   margin-top:2.5em;
   font-size:0.78em;
-  color:rgba(255,255,255,0.25);
+  color:rgba(80,60,60,0.3);
   animation: pulse 2s ease-in-out infinite;
 }
 @keyframes pulse {
-  0%,100% { opacity:0.25; }
-  50% { opacity:0.5; }
+  0%,100% { opacity:0.3; }
+  50% { opacity:0.6; }
 }
 
 /* BACK BUTTON */
@@ -118,9 +118,9 @@ canvas {
   left:16px;
   width:44px; height:44px;
   border-radius:50%;
-  background:rgba(255,255,255,0.08);
-  border:1px solid rgba(255,255,255,0.12);
-  color:#fff;
+  background:rgba(0,0,0,0.05);
+  border:1px solid rgba(0,0,0,0.08);
+  color:#3a2a2a;
   font-size:1.3em;
   display:flex;
   align-items:center;
@@ -133,7 +133,7 @@ canvas {
   -webkit-backdrop-filter:blur(8px);
 }
 #back-btn.show { opacity:1; }
-#back-btn:active { background:rgba(255,255,255,0.18); }
+#back-btn:active { background:rgba(0,0,0,0.1); }
 
 /* WAX BREAKING HINT */
 #wax-hint {
@@ -142,7 +142,7 @@ canvas {
   left:50%;
   transform:translateX(-50%);
   font-size:0.82em;
-  color:rgba(255,255,255,0.35);
+  color:rgba(80,60,60,0.45);
   pointer-events:none;
   opacity:0;
   transition: opacity 0.5s;
@@ -158,7 +158,7 @@ canvas {
   transform:translateX(-50%);
   width:120px;
   height:3px;
-  background:rgba(255,255,255,0.08);
+  background:rgba(0,0,0,0.06);
   border-radius:2px;
   overflow:hidden;
   pointer-events:none;
@@ -169,7 +169,7 @@ canvas {
 #progress-bar {
   height:100%;
   width:0%;
-  background:rgba(255,200,200,0.5);
+  background:rgba(200,80,80,0.45);
   border-radius:2px;
   transition: width 0.15s;
 }
@@ -181,7 +181,7 @@ canvas {
   left:50%;
   transform:translateX(-50%);
   font-size:0.82em;
-  color:rgba(255,255,255,0.35);
+  color:rgba(80,60,60,0.45);
   pointer-events:none;
   opacity:0;
   transition: opacity 0.5s;
@@ -405,7 +405,7 @@ const BgParticles = {
   
   draw(ctx) {
     for (const p of this.items) {
-      ctx.fillStyle = `rgba(255,255,255,${p.alpha})`;
+      ctx.fillStyle = `rgba(200,170,150,${p.alpha * 0.7})`;
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
       ctx.fill();
@@ -830,16 +830,30 @@ const WaxShell = {
   },
   
   _drawInnerBall(ctx) {
-    // Pink/salmon inner ball
+    // Vibrant pink/salmon inner ball with pearlescent sheen
     const g = ctx.createRadialGradient(
-      this.cx - this.radius * 0.2, this.cy - this.radius * 0.2, 0,
+      this.cx - this.radius * 0.25, this.cy - this.radius * 0.25, 0,
       this.cx, this.cy, this.radius
     );
-    g.addColorStop(0, '#f5a8a0');
-    g.addColorStop(0.35, '#e8908a');
-    g.addColorStop(0.65, '#d57878');
-    g.addColorStop(1, '#c06868');
+    g.addColorStop(0, '#ffbcb5');
+    g.addColorStop(0.25, '#f5a099');
+    g.addColorStop(0.5, '#ea8a84');
+    g.addColorStop(0.75, '#d57070');
+    g.addColorStop(1, '#c05e5e');
     ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(this.cx, this.cy, this.radius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Pearlescent sheen overlay (shifted highlight)
+    const sheenG = ctx.createRadialGradient(
+      this.cx - this.radius * 0.35, this.cy - this.radius * 0.3, 0,
+      this.cx - this.radius * 0.1, this.cy - this.radius * 0.1, this.radius * 0.7
+    );
+    sheenG.addColorStop(0, 'rgba(255,230,240,0.3)');
+    sheenG.addColorStop(0.4, 'rgba(255,200,210,0.1)');
+    sheenG.addColorStop(1, 'rgba(255,200,210,0)');
+    ctx.fillStyle = sheenG;
     ctx.beginPath();
     ctx.arc(this.cx, this.cy, this.radius, 0, Math.PI * 2);
     ctx.fill();
@@ -866,68 +880,118 @@ const WaxShell = {
   },
   
   _drawWaxCells(ctx) {
-    for (const cell of this.cells) {
-      if (cell.state !== 'intact' && cell.state !== 'cracked') continue;
-      
-      const cx = cell.baseX + cell.offsetX;
-      const cy = cell.baseY + cell.offsetY;
-      
+    // --- STEP 1: Draw smooth 3D wax base layer over the entire ball ---
+    // This creates the pearlescent, translucent-looking sphere
+    const hasIntact = this.cells.some(c => c.state === 'intact' || c.state === 'cracked');
+    if (hasIntact) {
       ctx.save();
-      ctx.translate(cx, cy);
-      ctx.rotate(cell.rotation);
       
-      // Bright apple red wax color with warm variation
-      const lightFactor = 1 - cell.distFromCenter * 0.25;
-      const shift = cell.colorShift; // wider range used below
-      const r = Math.round(clamp((230 + shift * 160) * lightFactor, 140, 255));
-      const g = Math.round(clamp((52 + shift * 80) * lightFactor, 18, 95));
-      const b = Math.round(clamp((47 + shift * 60) * lightFactor, 18, 85));
-      
-      // Lighter center color for radial gradient per cell
-      const lr = Math.min(255, r + 28);
-      const lg = Math.min(255, g + 14);
-      const lb = Math.min(255, b + 10);
-      // Darker edge color
-      const dr = Math.max(0, r - 30);
-      const dg = Math.max(0, g - 10);
-      const db = Math.max(0, b - 8);
-      
+      // Base: deep crimson shadow layer (entire ball)
+      const baseG = ctx.createRadialGradient(
+        this.cx - this.radius * 0.35, this.cy - this.radius * 0.35, 0,
+        this.cx + this.radius * 0.1, this.cy + this.radius * 0.1, this.radius * 1.05
+      );
+      baseG.addColorStop(0, '#fce8d8');   // warm cream-white highlight area
+      baseG.addColorStop(0.12, '#f4b0a0'); // peach transition
+      baseG.addColorStop(0.28, '#e86858'); // warm apple red
+      baseG.addColorStop(0.48, '#d84838'); // rich red
+      baseG.addColorStop(0.68, '#c03028'); // deeper red
+      baseG.addColorStop(0.85, '#981e20'); // dark crimson
+      baseG.addColorStop(1.0, '#6e1518');  // deepest shadow at edge
+      ctx.fillStyle = baseG;
       ctx.beginPath();
-      for (let i = 0; i < cell.verts.length; i++) {
-        const v = cell.verts[i];
-        if (i === 0) ctx.moveTo(v.x, v.y);
-        else ctx.lineTo(v.x, v.y);
-      }
-      ctx.closePath();
+      ctx.arc(this.cx, this.cy, this.radius, 0, Math.PI * 2);
+      ctx.fill();
       
+      // Warm secondary light from below-right (subtle warm bounce)
+      const bounceG = ctx.createRadialGradient(
+        this.cx + this.radius * 0.35, this.cy + this.radius * 0.35, 0,
+        this.cx + this.radius * 0.2, this.cy + this.radius * 0.2, this.radius * 0.8
+      );
+      bounceG.addColorStop(0, 'rgba(255,120,80,0.12)');
+      bounceG.addColorStop(0.5, 'rgba(200,60,40,0.05)');
+      bounceG.addColorStop(1, 'rgba(200,60,40,0)');
+      ctx.fillStyle = bounceG;
+      ctx.beginPath();
+      ctx.arc(this.cx, this.cy, this.radius, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Pearlescent color shift layer (subtle iridescent blue-pink at certain angles)
+      const pearlG = ctx.createRadialGradient(
+        this.cx + this.radius * 0.15, this.cy - this.radius * 0.2, this.radius * 0.2,
+        this.cx, this.cy, this.radius
+      );
+      pearlG.addColorStop(0, 'rgba(255,200,220,0.08)');
+      pearlG.addColorStop(0.4, 'rgba(240,180,200,0.04)');
+      pearlG.addColorStop(0.7, 'rgba(180,160,200,0.03)');
+      pearlG.addColorStop(1, 'rgba(180,160,200,0)');
+      ctx.fillStyle = pearlG;
+      ctx.beginPath();
+      ctx.arc(this.cx, this.cy, this.radius, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.restore();
+    }
+    
+    // --- STEP 2: Draw only cracked cells with darkened appearance ---
+    // Intact cells are NOT individually drawn (the smooth base IS the surface)
+    // Only cracked cells get individual rendering to show fractures
+    for (const cell of this.cells) {
       if (cell.state === 'cracked') {
-        // Cracked: show fracture darkening, slight gap
+        const cx = cell.baseX + cell.offsetX;
+        const cy = cell.baseY + cell.offsetY;
+        
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(cell.rotation);
+        
         const cp = cell.crackProgress;
-        const darkR = Math.round(r * (1 - cp * 0.3));
-        const darkG = Math.round(g * (1 - cp * 0.3));
-        const darkB = Math.round(b * (1 - cp * 0.3));
-        ctx.fillStyle = `rgb(${darkR},${darkG},${darkB})`;
+        
+        ctx.beginPath();
+        for (let i = 0; i < cell.verts.length; i++) {
+          const v = cell.verts[i];
+          if (i === 0) ctx.moveTo(v.x, v.y);
+          else ctx.lineTo(v.x, v.y);
+        }
+        ctx.closePath();
+        
+        // Darken cracked area
+        ctx.fillStyle = `rgba(20,5,5,${0.2 * cp})`;
         ctx.fill();
         
         // Crack edge lines
-        ctx.strokeStyle = `rgba(30,5,5,${0.6 * cp})`;
-        ctx.lineWidth = 1.5 * cp;
+        ctx.strokeStyle = `rgba(30,5,5,${0.55 * cp})`;
+        ctx.lineWidth = 1.2 * cp;
         ctx.stroke();
-      } else {
-        // Intact: radial gradient per cell for 3D wax chunk feel
-        const cellGrad = ctx.createRadialGradient(0, -cell.size * 0.15, 0, 0, 0, cell.size * 0.85);
-        cellGrad.addColorStop(0, `rgb(${lr},${lg},${lb})`);
-        cellGrad.addColorStop(0.55, `rgb(${r},${g},${b})`);
-        cellGrad.addColorStop(1, `rgb(${dr},${dg},${db})`);
-        ctx.fillStyle = cellGrad;
-        ctx.fill();
         
-        // Very subtle warm edge highlight
-        ctx.strokeStyle = 'rgba(255,180,150,0.12)';
-        ctx.lineWidth = 0.5;
-        ctx.stroke();
+        ctx.restore();
       }
-      
+    }
+    
+    // --- STEP 3: Draw very subtle cell groove lines on intact cells ---
+    // Almost invisible boundaries that give organic wax texture
+    if (hasIntact) {
+      ctx.save();
+      ctx.globalAlpha = 0.06;
+      ctx.strokeStyle = 'rgba(60,10,10,1)';
+      ctx.lineWidth = 0.5;
+      for (const cell of this.cells) {
+        if (cell.state !== 'intact') continue;
+        const cx = cell.baseX + cell.offsetX;
+        const cy = cell.baseY + cell.offsetY;
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(cell.rotation);
+        ctx.beginPath();
+        for (let i = 0; i < cell.verts.length; i++) {
+          const v = cell.verts[i];
+          if (i === 0) ctx.moveTo(v.x, v.y);
+          else ctx.lineTo(v.x, v.y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+        ctx.restore();
+      }
       ctx.restore();
     }
   },
@@ -1033,6 +1097,34 @@ const WaxShell = {
     ctx.roundRect(-stemW / 2, 0, stemW, stemH, stemW * 0.4);
     ctx.fill();
     
+    // --- Wax twist nub at top of stem ---
+    // Small twisted wax blob where the wax was sealed
+    const nubX = 0;
+    const nubY = -stemW * 0.3;
+    const nubR = stemW * 1.1;
+    
+    // Nub shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.1)';
+    ctx.beginPath();
+    ctx.ellipse(nubX + 0.5, nubY + 0.5, nubR * 1.3, nubR * 0.7, -0.3, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Nub body — same red wax color
+    const nubGrad = ctx.createRadialGradient(nubX - nubR * 0.2, nubY - nubR * 0.3, 0, nubX, nubY, nubR * 1.2);
+    nubGrad.addColorStop(0, '#e86858');
+    nubGrad.addColorStop(0.5, '#c83828');
+    nubGrad.addColorStop(1, '#981e20');
+    ctx.fillStyle = nubGrad;
+    ctx.beginPath();
+    ctx.ellipse(nubX, nubY, nubR * 1.3, nubR * 0.7, -0.3, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Nub specular
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    ctx.beginPath();
+    ctx.ellipse(nubX - nubR * 0.3, nubY - nubR * 0.15, nubR * 0.4, nubR * 0.2, -0.3, 0, Math.PI * 2);
+    ctx.fill();
+    
     ctx.restore();
     
     // Green leaf next to stem
@@ -1089,43 +1181,121 @@ const WaxShell = {
   },
   
   _drawHighlights(ctx) {
-    // Main specular highlight (stronger glossy shine)
-    const specGrad = ctx.createRadialGradient(
-      this.cx - this.radius * 0.3, this.cy - this.radius * 0.35, 0,
-      this.cx - this.radius * 0.3, this.cy - this.radius * 0.35, this.radius * 0.55
+    const R = this.radius;
+    const CX = this.cx;
+    const CY = this.cy;
+    
+    // --- 1. SSS (Subsurface Scattering) glow ---
+    // Warm orange-pink glow around edges where light passes through wax
+    const sssG = ctx.createRadialGradient(
+      CX - R * 0.15, CY - R * 0.15, R * 0.55,
+      CX, CY, R * 1.02
     );
-    specGrad.addColorStop(0, 'rgba(255,255,255,0.35)');
-    specGrad.addColorStop(0.35, 'rgba(255,255,255,0.12)');
-    specGrad.addColorStop(0.7, 'rgba(255,255,255,0.03)');
+    sssG.addColorStop(0, 'rgba(255,100,60,0)');
+    sssG.addColorStop(0.5, 'rgba(255,120,70,0.06)');
+    sssG.addColorStop(0.75, 'rgba(255,140,90,0.14)');
+    sssG.addColorStop(0.92, 'rgba(255,160,120,0.18)');
+    sssG.addColorStop(1, 'rgba(255,140,100,0.05)');
+    ctx.fillStyle = sssG;
+    ctx.beginPath();
+    ctx.arc(CX, CY, R, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // --- 2. Primary specular highlight (large, soft) ---
+    const specGrad = ctx.createRadialGradient(
+      CX - R * 0.3, CY - R * 0.35, 0,
+      CX - R * 0.25, CY - R * 0.3, R * 0.5
+    );
+    specGrad.addColorStop(0, 'rgba(255,255,255,0.55)');
+    specGrad.addColorStop(0.2, 'rgba(255,255,255,0.35)');
+    specGrad.addColorStop(0.5, 'rgba(255,255,255,0.12)');
+    specGrad.addColorStop(0.8, 'rgba(255,255,255,0.03)');
     specGrad.addColorStop(1, 'rgba(255,255,255,0)');
     ctx.fillStyle = specGrad;
     ctx.beginPath();
-    ctx.arc(this.cx, this.cy, this.radius, 0, Math.PI * 2);
+    ctx.arc(CX, CY, R, 0, Math.PI * 2);
     ctx.fill();
     
-    // Second smaller, brighter specular spot (tight glint)
+    // --- 3. Secondary specular (smaller, sharper glint) ---
+    const spec2X = CX - R * 0.22;
+    const spec2Y = CY - R * 0.3;
     const spec2Grad = ctx.createRadialGradient(
-      this.cx - this.radius * 0.22, this.cy - this.radius * 0.28, 0,
-      this.cx - this.radius * 0.22, this.cy - this.radius * 0.28, this.radius * 0.18
+      spec2X, spec2Y, 0,
+      spec2X, spec2Y, R * 0.15
     );
-    spec2Grad.addColorStop(0, 'rgba(255,255,255,0.5)');
-    spec2Grad.addColorStop(0.5, 'rgba(255,255,255,0.15)');
+    spec2Grad.addColorStop(0, 'rgba(255,255,255,0.7)');
+    spec2Grad.addColorStop(0.3, 'rgba(255,255,255,0.45)');
+    spec2Grad.addColorStop(0.6, 'rgba(255,255,255,0.12)');
     spec2Grad.addColorStop(1, 'rgba(255,255,255,0)');
     ctx.fillStyle = spec2Grad;
     ctx.beginPath();
-    ctx.arc(this.cx, this.cy, this.radius, 0, Math.PI * 2);
+    ctx.arc(CX, CY, R, 0, Math.PI * 2);
     ctx.fill();
     
-    // Rim darkening
-    const rimGrad = ctx.createRadialGradient(
-      this.cx, this.cy, this.radius * 0.85,
-      this.cx, this.cy, this.radius
-    );
-    rimGrad.addColorStop(0, 'rgba(0,0,0,0)');
-    rimGrad.addColorStop(1, 'rgba(0,0,0,0.3)');
-    ctx.fillStyle = rimGrad;
+    // --- 4. Rim light (upper-right crescent) ---
+    ctx.save();
     ctx.beginPath();
-    ctx.arc(this.cx, this.cy, this.radius, 0, Math.PI * 2);
+    ctx.arc(CX, CY, R, 0, Math.PI * 2);
+    ctx.clip();
+    
+    // Crescent: clip a shifted circle to create a rim shape
+    ctx.beginPath();
+    ctx.arc(CX + R * 0.15, CY - R * 0.1, R * 1.02, -Math.PI * 0.45, Math.PI * 0.15);
+    ctx.arc(CX + R * 0.25, CY - R * 0.15, R * 0.88, Math.PI * 0.15, -Math.PI * 0.45, true);
+    ctx.closePath();
+    const rimG = ctx.createLinearGradient(
+      CX + R * 0.5, CY - R * 0.6,
+      CX + R * 0.9, CY + R * 0.1
+    );
+    rimG.addColorStop(0, 'rgba(255,255,255,0.28)');
+    rimG.addColorStop(0.5, 'rgba(255,255,255,0.12)');
+    rimG.addColorStop(1, 'rgba(255,255,255,0.02)');
+    ctx.fillStyle = rimG;
+    ctx.fill();
+    ctx.restore();
+    
+    // --- 5. Bottom reflection (cool-toned) ---
+    const botRefX = CX + R * 0.05;
+    const botRefY = CY + R * 0.55;
+    const botRefG = ctx.createRadialGradient(
+      botRefX, botRefY, 0,
+      botRefX, botRefY, R * 0.4
+    );
+    botRefG.addColorStop(0, 'rgba(200,210,240,0.15)');
+    botRefG.addColorStop(0.4, 'rgba(190,200,230,0.08)');
+    botRefG.addColorStop(1, 'rgba(190,200,230,0)');
+    ctx.fillStyle = botRefG;
+    ctx.beginPath();
+    ctx.arc(CX, CY, R, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // --- 6. Fresnel rim (bright translucent edge all around) ---
+    const fresnelG = ctx.createRadialGradient(
+      CX, CY, R * 0.82,
+      CX, CY, R
+    );
+    fresnelG.addColorStop(0, 'rgba(255,255,255,0)');
+    fresnelG.addColorStop(0.4, 'rgba(255,255,255,0)');
+    fresnelG.addColorStop(0.7, 'rgba(255,235,230,0.06)');
+    fresnelG.addColorStop(0.88, 'rgba(255,240,235,0.13)');
+    fresnelG.addColorStop(0.96, 'rgba(255,245,240,0.18)');
+    fresnelG.addColorStop(1, 'rgba(255,250,248,0.08)');
+    ctx.fillStyle = fresnelG;
+    ctx.beginPath();
+    ctx.arc(CX, CY, R, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // --- 7. Subtle rim darkening (ensures spherical depth) ---
+    const rimDarkG = ctx.createRadialGradient(
+      CX, CY, R * 0.88,
+      CX, CY, R
+    );
+    rimDarkG.addColorStop(0, 'rgba(0,0,0,0)');
+    rimDarkG.addColorStop(0.5, 'rgba(40,0,0,0.04)');
+    rimDarkG.addColorStop(1, 'rgba(40,0,0,0.12)');
+    ctx.fillStyle = rimDarkG;
+    ctx.beginPath();
+    ctx.arc(CX, CY, R, 0, Math.PI * 2);
     ctx.fill();
   },
   
@@ -1881,7 +2051,7 @@ const app = {
     ctx.scale(this.dpr, this.dpr);
     
     // Clear
-    ctx.fillStyle = '#12080c';
+    ctx.fillStyle = '#f0ebe6';
     ctx.fillRect(0, 0, this.W, this.H);
     
     // Background particles
