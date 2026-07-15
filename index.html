@@ -484,6 +484,12 @@ const WaxShell = {
     this.waxCanvas.height = this.maskSize;
     this.waxCtx = this.waxCanvas.getContext('2d');
     this._prerenderWax();
+    
+    // Temp canvas for compositing (reused each frame)
+    this.tempCanvas = document.createElement('canvas');
+    this.tempCanvas.width = this.maskSize;
+    this.tempCanvas.height = this.maskSize;
+    this.tempCtx = this.tempCanvas.getContext('2d');
   },
   
   _prerenderWax() {
@@ -779,11 +785,8 @@ const WaxShell = {
     ctx.restore();
     
     // --- 2. Draw wax layer masked by scratch pattern ---
-    // Use a temp canvas to composite wax + mask
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = S;
-    tempCanvas.height = S;
-    const tctx = tempCanvas.getContext('2d');
+    const tctx = this.tempCtx;
+    tctx.clearRect(0, 0, S, S);
     
     // Draw pre-rendered wax ball
     tctx.drawImage(this.waxCanvas, 0, 0);
@@ -794,10 +797,19 @@ const WaxShell = {
     tctx.globalCompositeOperation = 'source-over';
     
     // Draw masked wax onto main canvas
-    ctx.drawImage(tempCanvas, originX, originY);
+    ctx.drawImage(this.tempCanvas, originX, originY);
     
-    // --- 3. Draw scratch edge effects (depth illusion) ---
-    this._drawScratchEdges(ctx, tempCanvas, originX, originY);
+    // --- 3. Draw scratch edge effects (depth/shadow at scratch boundaries) ---
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(CX, CY, R, 0, Math.PI * 2);
+    ctx.clip();
+    // Dark shadow edge: draw wax slightly offset to create depth
+    ctx.globalAlpha = 0.2;
+    ctx.drawImage(this.tempCanvas, originX + 1.5, originY + 1.5);
+    ctx.globalAlpha = 0.1;
+    ctx.drawImage(this.tempCanvas, originX - 1, originY - 1);
+    ctx.restore();
     
     // --- 4. Draw crack lines ---
     this._drawCrackLines(ctx);
@@ -867,24 +879,6 @@ const WaxShell = {
         }
       }
     }
-  },
-  
-  _drawScratchEdges(ctx, tempCanvas, originX, originY) {
-    // Draw a darkened edge along scratch boundaries for depth effect
-    // We do this by drawing the wax slightly offset with shadow
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(this.cx, this.cy, this.radius, 0, Math.PI * 2);
-    ctx.clip();
-    
-    // Dark inner shadow along scratch edges
-    ctx.globalAlpha = 0.25;
-    ctx.globalCompositeOperation = 'source-atop';
-    ctx.drawImage(tempCanvas, originX + 1.5, originY + 1.5);
-    ctx.globalAlpha = 0.15;
-    ctx.drawImage(tempCanvas, originX - 1, originY - 1);
-    
-    ctx.restore();
   },
   
   _drawCrackLines(ctx) {
