@@ -11,7 +11,7 @@
 html, body {
   width:100%; height:100%;
   overflow:hidden;
-  background:#0a0a0f;
+  background:#12080c;
   font-family: -apple-system, 'Segoe UI', sans-serif;
   touch-action:none;
   -webkit-touch-callout:none;
@@ -63,7 +63,7 @@ canvas {
 
 .ball-card {
   width:280px;
-  background: rgba(255,255,255,0.06);
+  background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,60,60,0.06));
   border:1px solid rgba(255,255,255,0.1);
   border-radius:24px;
   padding:28px 24px;
@@ -72,6 +72,7 @@ canvas {
   transition: transform 0.2s, background 0.2s;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 0 40px rgba(220,40,40,0.08), inset 0 0 30px rgba(255,255,255,0.02);
 }
 .ball-card:active {
   transform:scale(0.96);
@@ -82,6 +83,7 @@ canvas {
   margin-bottom:0.2em;
   display:block;
   animation: bobEmoji 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 12px rgba(220,40,40,0.4));
 }
 @keyframes bobEmoji {
   0%,100% { transform: translateY(0) scale(1); }
@@ -203,7 +205,7 @@ canvas {
     <div class="tap-hint">탭하여 시작</div>
   </div>
   <div id="back-btn" onclick="app.goHome()">←</div>
-  <div id="wax-hint">볼을 탭하여 왁스를 깨세요! 🔨</div>
+  <div id="wax-hint">꾹 누르고 밀어서 왁스를 벗겨보세요! 👆</div>
   <div id="progress-wrap"><div id="progress-bar"></div></div>
   <div id="squeeze-hint">꾹 눌러서 쥐어짜 보세요! 🤏</div>
 </div>
@@ -412,162 +414,375 @@ const BgParticles = {
 };
 
 // ============================================================
-// === WAX SHELL ===
+// === WAX SHELL (Press & Peel System) ===
 // ============================================================
 const WaxShell = {
   cells: [],
   radius: 0,
   cx: 0, cy: 0,
   totalCells: 0,
-  brokenCount: 0,
-  crackAnimations: [],
+  removedCount: 0,
   fallingPieces: [],
+  crackLines: [],       // visible crack lines on the surface
+  pressing: false,
+  pressX: 0, pressY: 0,
+  lastDragX: 0, lastDragY: 0,
+  dragDist: 0,          // total drag distance since press
+  pressTime: 0,
+  lastCrackSound: 0,
+  onCellBroken: null,
   
   init(cx, cy, radius) {
     this.cx = cx;
     this.cy = cy;
     this.radius = radius;
     this.cells = [];
-    this.brokenCount = 0;
-    this.crackAnimations = [];
+    this.removedCount = 0;
     this.fallingPieces = [];
+    this.crackLines = [];
+    this.pressing = false;
+    this.dragDist = 0;
     
-    // Generate hexagonal grid cells
-    const cellSize = radius * 0.13;
-    const rows = Math.ceil(radius * 2 / (cellSize * 1.5));
-    const cols = Math.ceil(radius * 2 / (cellSize * Math.sqrt(3)));
+    // Generate Voronoi-like cells using relaxed random points
+    const seeds = [];
+    const cellSize = radius * 0.11;
+    const attempts = Math.floor((radius * 2) * (radius * 2) / (cellSize * cellSize) * 0.85);
     
-    for (let row = -rows; row <= rows; row++) {
-      for (let col = -cols; col <= cols; col++) {
-        const offsetX = (row % 2) * cellSize * Math.sqrt(3) / 2;
-        const x = cx + col * cellSize * Math.sqrt(3) + offsetX;
-        const y = cy + row * cellSize * 1.5;
-        const d = dist(x, y, cx, cy);
-        if (d < radius - cellSize * 0.5) {
-          this.cells.push({
-            x, y, 
-            size: cellSize,
-            state: 'intact', // intact, cracking, broken
-            crackTime: 0,
-            crackProgress: 0,
-            distFromCenter: d / radius,
-            angle: Math.atan2(y - cy, x - cx),
-            // Fracture pattern
-            fractures: this.generateFractures(cellSize),
-          });
+    // Poisson-disk-like sampling for organic spacing
+    for (let i = 0; i < attempts; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const r = Math.sqrt(Math.random()) * (radius - cellSize * 0.8);
+      const px = cx + Math.cos(angle) * r;
+      const py = cy + Math.sin(angle) * r;
+      
+      // Check minimum distance from existing seeds
+      let tooClose = false;
+      for (const s of seeds) {
+        if (dist(px, py, s.x, s.y) < cellSize * 0.85) {
+          tooClose = true;
+          break;
+        }
+      }
+      if (!tooClose) {
+        seeds.push({ x: px, y: py });
+      }
+    }
+    
+    // Build cells from seeds with random polygonal shapes
+    for (const seed of seeds) {
+      const d = dist(seed.x, seed.y, cx, cy);
+      const numVerts = 5 + Math.floor(Math.random() * 4); // 5-8 vertices
+      const verts = [];
+      const baseAngle = Math.random() * Math.PI * 2;
+      const sizeVar = cellSize * (0.4 + Math.random() * 0.3);
+      
+      for (let i = 0; i < numVerts; i++) {
+        const a = baseAngle + (i / numVerts) * Math.PI * 2;
+        const rv = sizeVar * (0.7 + Math.random() * 0.6);
+        verts.push({
+          x: Math.cos(a) * rv,
+          y: Math.sin(a) * rv
+        });
+      }
+      
+      this.cells.push({
+        // Base position (on the ball surface)
+        baseX: seed.x,
+        baseY: seed.y,
+        // Current offset from base (displaced by dragging)
+        offsetX: 0,
+        offsetY: 0,
+        velX: 0,
+        velY: 0,
+        // Shape
+        verts: verts,
+        size: sizeVar,
+        rotation: 0,
+        rotVel: 0,
+        // State
+        state: 'intact',  // intact, cracked, loose, removed
+        crackProgress: 0,
+        crackTime: 0,
+        // Properties  
+        distFromCenter: d / radius,
+        angle: Math.atan2(seed.y - cy, seed.x - cx),
+        // Visual
+        colorShift: Math.random() * 0.3 - 0.15,
+        // Connected neighbors (indices) - set after all cells created
+        neighbors: [],
+      });
+    }
+    
+    this.totalCells = this.cells.length;
+    
+    // Find neighbors (cells close to each other)
+    for (let i = 0; i < this.cells.length; i++) {
+      for (let j = i + 1; j < this.cells.length; j++) {
+        const a = this.cells[i];
+        const b = this.cells[j];
+        const d = dist(a.baseX, a.baseY, b.baseX, b.baseY);
+        if (d < cellSize * 2.2) {
+          a.neighbors.push(j);
+          b.neighbors.push(i);
         }
       }
     }
-    this.totalCells = this.cells.length;
   },
   
-  generateFractures(size) {
-    const lines = [];
-    const count = 2 + Math.floor(Math.random() * 3);
-    for (let i = 0; i < count; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const len = size * (0.4 + Math.random() * 0.6);
-      lines.push({
-        x1: Math.cos(angle) * size * 0.1 * Math.random(),
-        y1: Math.sin(angle) * size * 0.1 * Math.random(),
-        x2: Math.cos(angle) * len,
-        y2: Math.sin(angle) * len,
-      });
-    }
-    return lines;
-  },
-  
-  tap(tx, ty) {
-    let hit = false;
-    const tapRadius = this.radius * 0.22;
+  press(tx, ty) {
+    const d = dist(tx, ty, this.cx, this.cy);
+    if (d > this.radius) return false;
     
-    // Find closest intact cells
-    const candidates = [];
+    this.pressing = true;
+    this.pressX = tx;
+    this.pressY = ty;
+    this.lastDragX = tx;
+    this.lastDragY = ty;
+    this.dragDist = 0;
+    this.pressTime = performance.now();
+    
+    // Crack cells under finger
+    this._crackArea(tx, ty, this.radius * 0.18);
+    
+    return true;
+  },
+  
+  drag(tx, ty) {
+    if (!this.pressing) return;
+    
+    const dx = tx - this.lastDragX;
+    const dy = ty - this.lastDragY;
+    const moveDist = Math.sqrt(dx * dx + dy * dy);
+    this.dragDist += moveDist;
+    
+    if (moveDist > 1) {
+      // Crack cells along drag path
+      this._crackArea(tx, ty, this.radius * 0.15);
+      
+      // Push loose/cracked cells in drag direction
+      this._pushCells(tx, ty, dx, dy, moveDist);
+      
+      // Small particles along drag trail
+      if (this.dragDist > 5 && Math.random() > 0.6) {
+        Particles.emit(tx, ty, 2, {
+          color: '#e04535',
+          speed: 1.5,
+          size: 1.5,
+          decay: 0.04,
+          gravity: 0.08,
+          shape: 'rect'
+        });
+      }
+    }
+    
+    this.lastDragX = tx;
+    this.lastDragY = ty;
+    this.pressX = tx;
+    this.pressY = ty;
+  },
+  
+  release() {
+    this.pressing = false;
+  },
+  
+  _crackArea(tx, ty, radius) {
+    const now = performance.now();
+    let cracked = false;
+    
     for (const cell of this.cells) {
       if (cell.state !== 'intact') continue;
-      const d = dist(tx, ty, cell.x, cell.y);
-      if (d < tapRadius) {
-        candidates.push({ cell, dist: d });
+      const cx = cell.baseX + cell.offsetX;
+      const cy = cell.baseY + cell.offsetY;
+      const d = dist(tx, ty, cx, cy);
+      
+      if (d < radius) {
+        cell.state = 'cracked';
+        cell.crackTime = now;
+        cracked = true;
+        
+        // Generate crack lines radiating from impact
+        const numCracks = 2 + Math.floor(Math.random() * 3);
+        for (let i = 0; i < numCracks; i++) {
+          const angle = Math.atan2(cy - ty, cx - tx) + (Math.random() - 0.5) * 1.8;
+          const len = cell.size * (0.8 + Math.random() * 1.2);
+          this.crackLines.push({
+            x: cx, y: cy,
+            angle: angle,
+            len: len,
+            life: 1,
+            width: 1 + Math.random() * 1.5,
+          });
+        }
+        
+        // Also crack some nearby intact neighbors (crack propagation)
+        for (const ni of cell.neighbors) {
+          const nb = this.cells[ni];
+          if (nb.state === 'intact' && Math.random() > 0.55) {
+            nb.state = 'cracked';
+            nb.crackTime = now + Math.random() * 80;
+            
+            const nbx = nb.baseX + nb.offsetX;
+            const nby = nb.baseY + nb.offsetY;
+            this.crackLines.push({
+              x: (cx + nbx) / 2, y: (cy + nby) / 2,
+              angle: Math.atan2(nby - cy, nbx - cx),
+              len: cell.size * 0.7,
+              life: 1,
+              width: 0.8 + Math.random(),
+            });
+          }
+        }
       }
     }
     
-    candidates.sort((a, b) => a.dist - b.dist);
-    const toBreak = candidates.slice(0, Math.min(candidates.length, 3 + Math.floor(Math.random() * 3)));
+    if (cracked && now - this.lastCrackSound > 80) {
+      Audio.playCrack();
+      if (navigator.vibrate) navigator.vibrate(12);
+      this.lastCrackSound = now;
+    }
+  },
+  
+  _pushCells(tx, ty, dx, dy, moveDist) {
+    const pushRadius = this.radius * 0.22;
+    const pushForce = Math.min(moveDist * 0.6, 8);
+    const dirLen = Math.sqrt(dx * dx + dy * dy) || 1;
+    const ndx = dx / dirLen;
+    const ndy = dy / dirLen;
     
-    for (const { cell, dist: d } of toBreak) {
-      cell.state = 'cracking';
-      cell.crackTime = performance.now();
-      const delay = d / tapRadius * 100;
-      setTimeout(() => {
-        if (cell.state === 'cracking') {
-          cell.state = 'broken';
-          this.brokenCount++;
-          // Create falling piece
-          this.fallingPieces.push({
-            x: cell.x, y: cell.y,
-            size: cell.size,
-            vx: (cell.x - this.cx) * 0.02 + (Math.random() - 0.5) * 2,
-            vy: -2 - Math.random() * 3,
-            rotation: Math.random() * Math.PI * 2,
-            rotSpeed: (Math.random() - 0.5) * 0.15,
-            life: 1,
-            distFromCenter: cell.distFromCenter,
-          });
-          // Check completion after each cell breaks
-          if (this.onCellBroken) this.onCellBroken();
+    for (const cell of this.cells) {
+      if (cell.state === 'intact' || cell.state === 'removed') continue;
+      
+      const cx = cell.baseX + cell.offsetX;
+      const cy = cell.baseY + cell.offsetY;
+      const d = dist(tx, ty, cx, cy);
+      
+      if (d < pushRadius) {
+        // Make it loose once pushed
+        if (cell.state === 'cracked') {
+          cell.state = 'loose';
         }
-      }, delay + 150 + Math.random() * 100);
-      hit = true;
+        
+        const factor = (1 - d / pushRadius) * pushForce;
+        
+        // Push in drag direction + slightly outward from ball center
+        const outX = (cx - this.cx);
+        const outY = (cy - this.cy);
+        const outLen = Math.sqrt(outX * outX + outY * outY) || 1;
+        
+        cell.velX += ndx * factor * 0.7 + (outX / outLen) * factor * 0.3;
+        cell.velY += ndy * factor * 0.7 + (outY / outLen) * factor * 0.3;
+        cell.rotVel += (Math.random() - 0.5) * factor * 0.02;
+      }
     }
-    
-    if (hit) {
-      // Particles
-      Particles.emit(tx, ty, 8, {
-        color: '#cc2233',
-        speed: 4,
-        size: 3,
-        decay: 0.025,
-        gravity: 0.15,
-        shape: 'rect'
-      });
-      Particles.emit(tx, ty, 5, {
-        color: '#ff8866',
-        speed: 2,
-        size: 2,
-        decay: 0.03,
-        gravity: 0.05,
-      });
-    }
-    
-    return hit;
   },
   
   getProgress() {
-    return this.totalCells > 0 ? this.brokenCount / this.totalCells : 0;
+    return this.totalCells > 0 ? this.removedCount / this.totalCells : 0;
   },
   
   update() {
     const now = performance.now();
-    // Update cracking cells
+    
     for (const cell of this.cells) {
-      if (cell.state === 'cracking') {
-        cell.crackProgress = Math.min(1, (now - cell.crackTime) / 200);
+      if (cell.state === 'removed') continue;
+      
+      // Update crack animation
+      if (cell.state === 'cracked' || cell.state === 'loose') {
+        cell.crackProgress = Math.min(1, (now - cell.crackTime) / 250);
+      }
+      
+      // Physics for loose pieces
+      if (cell.state === 'loose') {
+        // Apply velocity
+        cell.offsetX += cell.velX;
+        cell.offsetY += cell.velY;
+        cell.rotation += cell.rotVel;
+        
+        // Friction on ball surface
+        cell.velX *= 0.88;
+        cell.velY *= 0.88;
+        cell.rotVel *= 0.92;
+        
+        // Check if piece has moved off the ball edge
+        const curX = cell.baseX + cell.offsetX;
+        const curY = cell.baseY + cell.offsetY;
+        const dFromCenter = dist(curX, curY, this.cx, this.cy);
+        
+        if (dFromCenter > this.radius * 0.92) {
+          // Piece is at the edge — it falls off!
+          cell.state = 'removed';
+          this.removedCount++;
+          
+          // Create a falling piece
+          const outX = (curX - this.cx) / dFromCenter;
+          const outY = (curY - this.cy) / dFromCenter;
+          this.fallingPieces.push({
+            x: curX, y: curY,
+            verts: cell.verts,
+            size: cell.size,
+            vx: outX * 3 + cell.velX * 0.5,
+            vy: outY * 3 + cell.velY * 0.5 - 1,
+            rotation: cell.rotation,
+            rotSpeed: cell.rotVel + (Math.random() - 0.5) * 0.1,
+            life: 1,
+            colorShift: cell.colorShift,
+          });
+          
+          if (this.onCellBroken) this.onCellBroken();
+          
+          // Small burst
+          Particles.emit(curX, curY, 4, {
+            color: '#e04030',
+            speed: 2,
+            size: 2,
+            decay: 0.03,
+            gravity: 0.12,
+            shape: 'rect',
+            angle: Math.atan2(outY, outX),
+            spread: 1.2,
+          });
+        }
+        
+        // If piece has barely any velocity, check if it should settle
+        const speed = Math.sqrt(cell.velX * cell.velX + cell.velY * cell.velY);
+        if (speed < 0.05 && Math.abs(cell.rotVel) < 0.001) {
+          // Settled — stays as a cracked piece on the surface
+          // (player needs to push it again or it counts as still on the ball)
+        }
+      }
+      
+      // Cracked cells slowly become loose if pressed nearby for long
+      if (cell.state === 'cracked' && this.pressing) {
+        const cx = cell.baseX + cell.offsetX;
+        const cy = cell.baseY + cell.offsetY;
+        const dToPress = dist(this.pressX, this.pressY, cx, cy);
+        if (dToPress < this.radius * 0.2 && now - cell.crackTime > 200) {
+          cell.state = 'loose';
+        }
       }
     }
+    
     // Update falling pieces
     for (let i = this.fallingPieces.length - 1; i >= 0; i--) {
       const p = this.fallingPieces[i];
       p.x += p.vx;
       p.y += p.vy;
-      p.vy += 0.25;
+      p.vy += 0.18;
+      p.vx *= 0.99;
       p.rotation += p.rotSpeed;
-      p.life -= 0.012;
+      p.life -= 0.015;
       if (p.life <= 0) this.fallingPieces.splice(i, 1);
+    }
+    
+    // Fade crack lines
+    for (let i = this.crackLines.length - 1; i >= 0; i--) {
+      this.crackLines[i].life -= 0.003;
+      if (this.crackLines[i].life <= 0) this.crackLines.splice(i, 1);
     }
   },
   
   draw(ctx) {
-    // Drop shadow under wax ball
+    // Drop shadow
     const shG = ctx.createRadialGradient(
       this.cx, this.cy + this.radius * 1.05, 0,
       this.cx, this.cy + this.radius * 1.05, this.radius * 0.5
@@ -579,116 +794,387 @@ const WaxShell = {
     ctx.ellipse(this.cx, this.cy + this.radius * 1.05, this.radius * 0.5, this.radius * 0.12, 0, 0, Math.PI * 2);
     ctx.fill();
     
-    // Draw the base ball
-    const grad = ctx.createRadialGradient(
-      this.cx - this.radius * 0.25, this.cy - this.radius * 0.25, this.radius * 0.1,
-      this.cx, this.cy, this.radius
-    );
-    grad.addColorStop(0, '#ff3344');
-    grad.addColorStop(0.5, '#cc2233');
-    grad.addColorStop(1, '#881122');
-    
     ctx.save();
+    // Clip to ball shape
     ctx.beginPath();
     ctx.arc(this.cx, this.cy, this.radius, 0, Math.PI * 2);
-    ctx.fillStyle = grad;
+    ctx.clip();
+    
+    // 1. Draw inner ball (pink/beige mesh ball visible where wax is removed)
+    this._drawInnerBall(ctx);
+    
+    // 2. Draw intact & cracked wax cells (still on ball surface)
+    this._drawWaxCells(ctx);
+    
+    // 3. Draw crack lines
+    this._drawCrackLines(ctx);
+    
+    // 4. Draw loose pieces sliding on surface
+    this._drawLoosePieces(ctx);
+    
+    ctx.restore();
+    
+    // 5. Apple stem and leaf (outside clip, before highlights)
+    this._drawStemAndLeaf(ctx);
+    
+    // 5b. Specular highlights & rim (outside clip, on top)
+    this._drawHighlights(ctx);
+    
+    // 6. Falling pieces (outside ball)
+    this._drawFallingPieces(ctx);
+    
+    // 7. Press indent effect
+    if (this.pressing) {
+      this._drawPressEffect(ctx);
+    }
+  },
+  
+  _drawInnerBall(ctx) {
+    // Pink/salmon inner ball
+    const g = ctx.createRadialGradient(
+      this.cx - this.radius * 0.2, this.cy - this.radius * 0.2, 0,
+      this.cx, this.cy, this.radius
+    );
+    g.addColorStop(0, '#f5a8a0');
+    g.addColorStop(0.35, '#e8908a');
+    g.addColorStop(0.65, '#d57878');
+    g.addColorStop(1, '#c06868');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(this.cx, this.cy, this.radius, 0, Math.PI * 2);
     ctx.fill();
     
-    // Draw broken holes (show inner pink)
-    for (const cell of this.cells) {
-      if (cell.state === 'broken') {
-        ctx.fillStyle = '#c49a93';
-        this.drawHex(ctx, cell.x, cell.y, cell.size * 0.85);
-        ctx.fill();
-      }
-    }
-    
-    // Draw intact cells with hex grid lines
-    for (const cell of this.cells) {
-      if (cell.state === 'intact') {
-        // Subtle hex outline
-        ctx.strokeStyle = `rgba(255,150,130,0.18)`;
-        ctx.lineWidth = 0.8;
-        this.drawHex(ctx, cell.x, cell.y, cell.size * 0.9);
-        ctx.stroke();
-      } else if (cell.state === 'cracking') {
-        // Draw fracture lines
-        ctx.strokeStyle = `rgba(30,0,0,${0.8 * cell.crackProgress})`;
-        ctx.lineWidth = 2;
-        for (const f of cell.fractures) {
+    // Draw faint mesh texture on inner ball
+    ctx.strokeStyle = 'rgba(180,70,70,0.22)';
+    ctx.lineWidth = 1.2;
+    const meshSize = this.radius * 0.08;
+    for (let y = this.cy - this.radius; y < this.cy + this.radius; y += meshSize) {
+      for (let x = this.cx - this.radius; x < this.cx + this.radius; x += meshSize) {
+        const d = dist(x, y, this.cx, this.cy);
+        if (d < this.radius * 0.95) {
+          const row = Math.round((y - (this.cy - this.radius)) / meshSize);
+          const ox = (row % 2) * meshSize * 0.5;
           ctx.beginPath();
-          ctx.moveTo(cell.x + f.x1, cell.y + f.y1);
-          ctx.lineTo(cell.x + f.x1 + (f.x2 - f.x1) * cell.crackProgress,
-                     cell.y + f.y1 + (f.y2 - f.y1) * cell.crackProgress);
+          ctx.moveTo(x + ox, y);
+          ctx.lineTo(x + ox + meshSize * 0.5, y + meshSize * 0.5);
+          ctx.lineTo(x + ox - meshSize * 0.5, y + meshSize * 0.5);
+          ctx.closePath();
           ctx.stroke();
         }
-        // Flash white at crack initiation then darken
-        if (cell.crackProgress < 0.3) {
-          ctx.fillStyle = `rgba(255,200,180,${0.3 * (1 - cell.crackProgress / 0.3)})`;
-          this.drawHex(ctx, cell.x, cell.y, cell.size * 0.9);
-          ctx.fill();
-        }
-        // Darken the cell
-        ctx.fillStyle = `rgba(0,0,0,${0.25 * cell.crackProgress})`;
-        this.drawHex(ctx, cell.x, cell.y, cell.size * 0.9);
-        ctx.fill();
       }
     }
+  },
+  
+  _drawWaxCells(ctx) {
+    for (const cell of this.cells) {
+      if (cell.state !== 'intact' && cell.state !== 'cracked') continue;
+      
+      const cx = cell.baseX + cell.offsetX;
+      const cy = cell.baseY + cell.offsetY;
+      
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(cell.rotation);
+      
+      // Bright apple red wax color with warm variation
+      const lightFactor = 1 - cell.distFromCenter * 0.25;
+      const shift = cell.colorShift; // wider range used below
+      const r = Math.round(clamp((230 + shift * 160) * lightFactor, 140, 255));
+      const g = Math.round(clamp((52 + shift * 80) * lightFactor, 18, 95));
+      const b = Math.round(clamp((47 + shift * 60) * lightFactor, 18, 85));
+      
+      // Lighter center color for radial gradient per cell
+      const lr = Math.min(255, r + 28);
+      const lg = Math.min(255, g + 14);
+      const lb = Math.min(255, b + 10);
+      // Darker edge color
+      const dr = Math.max(0, r - 30);
+      const dg = Math.max(0, g - 10);
+      const db = Math.max(0, b - 8);
+      
+      ctx.beginPath();
+      for (let i = 0; i < cell.verts.length; i++) {
+        const v = cell.verts[i];
+        if (i === 0) ctx.moveTo(v.x, v.y);
+        else ctx.lineTo(v.x, v.y);
+      }
+      ctx.closePath();
+      
+      if (cell.state === 'cracked') {
+        // Cracked: show fracture darkening, slight gap
+        const cp = cell.crackProgress;
+        const darkR = Math.round(r * (1 - cp * 0.3));
+        const darkG = Math.round(g * (1 - cp * 0.3));
+        const darkB = Math.round(b * (1 - cp * 0.3));
+        ctx.fillStyle = `rgb(${darkR},${darkG},${darkB})`;
+        ctx.fill();
+        
+        // Crack edge lines
+        ctx.strokeStyle = `rgba(30,5,5,${0.6 * cp})`;
+        ctx.lineWidth = 1.5 * cp;
+        ctx.stroke();
+      } else {
+        // Intact: radial gradient per cell for 3D wax chunk feel
+        const cellGrad = ctx.createRadialGradient(0, -cell.size * 0.15, 0, 0, 0, cell.size * 0.85);
+        cellGrad.addColorStop(0, `rgb(${lr},${lg},${lb})`);
+        cellGrad.addColorStop(0.55, `rgb(${r},${g},${b})`);
+        cellGrad.addColorStop(1, `rgb(${dr},${dg},${db})`);
+        ctx.fillStyle = cellGrad;
+        ctx.fill();
+        
+        // Very subtle warm edge highlight
+        ctx.strokeStyle = 'rgba(255,180,150,0.12)';
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+      }
+      
+      ctx.restore();
+    }
+  },
+  
+  _drawCrackLines(ctx) {
+    for (const cl of this.crackLines) {
+      ctx.save();
+      ctx.globalAlpha = cl.life * 0.7;
+      ctx.strokeStyle = '#1a0505';
+      ctx.lineWidth = cl.width;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(cl.x, cl.y);
+      ctx.lineTo(
+        cl.x + Math.cos(cl.angle) * cl.len,
+        cl.y + Math.sin(cl.angle) * cl.len
+      );
+      ctx.stroke();
+      ctx.restore();
+    }
+  },
+  
+  _drawLoosePieces(ctx) {
+    for (const cell of this.cells) {
+      if (cell.state !== 'loose') continue;
+      
+      const cx = cell.baseX + cell.offsetX;
+      const cy = cell.baseY + cell.offsetY;
+      
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(cell.rotation);
+      
+      // Loose piece: slightly darker, with visible thickness at edges
+      const lightFactor = 0.88 - cell.distFromCenter * 0.18;
+      const r = Math.round(clamp((215 + cell.colorShift * 100) * lightFactor, 100, 245));
+      const g = Math.round(clamp((48 + cell.colorShift * 55) * lightFactor, 15, 75));
+      const b = Math.round(clamp((44 + cell.colorShift * 45) * lightFactor, 15, 70));
+      
+      // Shadow under loose piece (lifted effect)
+      ctx.globalAlpha = 0.2;
+      ctx.fillStyle = '#000';
+      ctx.beginPath();
+      for (let i = 0; i < cell.verts.length; i++) {
+        const v = cell.verts[i];
+        if (i === 0) ctx.moveTo(v.x + 2, v.y + 2);
+        else ctx.lineTo(v.x + 2, v.y + 2);
+      }
+      ctx.closePath();
+      ctx.fill();
+      
+      // Main piece
+      ctx.globalAlpha = 1;
+      ctx.beginPath();
+      for (let i = 0; i < cell.verts.length; i++) {
+        const v = cell.verts[i];
+        if (i === 0) ctx.moveTo(v.x, v.y);
+        else ctx.lineTo(v.x, v.y);
+      }
+      ctx.closePath();
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fill();
+      
+      // Edge (shows wax thickness)
+      ctx.strokeStyle = `rgba(100,20,20,0.5)`;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      // Inner edge highlight (wax cross-section)
+      ctx.strokeStyle = `rgba(255,180,160,0.25)`;
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+      
+      ctx.restore();
+    }
+  },
+  
+  _drawStemAndLeaf(ctx) {
+    const stemX = this.cx;
+    const stemTopY = this.cy - this.radius;
+    const stemW = this.radius * 0.035;
+    const stemH = this.radius * 0.12;
     
-    // Draw specular highlight (only on intact areas)
+    // Small brown stem
+    ctx.save();
+    ctx.translate(stemX, stemTopY - stemH * 0.15);
+    ctx.rotate(-0.08); // slight tilt
+    
+    // Stem shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    ctx.beginPath();
+    ctx.roundRect(-stemW / 2 + 1, 1, stemW, stemH, stemW * 0.4);
+    ctx.fill();
+    
+    // Stem body gradient
+    const stemGrad = ctx.createLinearGradient(-stemW / 2, 0, stemW / 2, 0);
+    stemGrad.addColorStop(0, '#5a3820');
+    stemGrad.addColorStop(0.4, '#7a5030');
+    stemGrad.addColorStop(0.7, '#6b4428');
+    stemGrad.addColorStop(1, '#4a2e18');
+    ctx.fillStyle = stemGrad;
+    ctx.beginPath();
+    ctx.roundRect(-stemW / 2, 0, stemW, stemH, stemW * 0.4);
+    ctx.fill();
+    
+    ctx.restore();
+    
+    // Green leaf next to stem
+    ctx.save();
+    ctx.translate(stemX + stemW * 0.5, stemTopY - stemH * 0.05);
+    ctx.rotate(0.5); // angled out to the right
+    
+    const leafLen = this.radius * 0.16;
+    const leafWid = this.radius * 0.07;
+    
+    // Leaf shadow
+    ctx.save();
+    ctx.translate(1.5, 1.5);
+    ctx.globalAlpha = 0.15;
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(leafLen * 0.5, -leafWid, leafLen, -leafWid * 0.15);
+    ctx.quadraticCurveTo(leafLen * 0.5, leafWid * 0.7, 0, 0);
+    ctx.fill();
+    ctx.restore();
+    
+    // Leaf body
+    const leafGrad = ctx.createLinearGradient(0, -leafWid, leafLen, 0);
+    leafGrad.addColorStop(0, '#3da540');
+    leafGrad.addColorStop(0.4, '#4dba50');
+    leafGrad.addColorStop(0.7, '#3a9e3e');
+    leafGrad.addColorStop(1, '#2d7d30');
+    ctx.fillStyle = leafGrad;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(leafLen * 0.5, -leafWid, leafLen, -leafWid * 0.15);
+    ctx.quadraticCurveTo(leafLen * 0.5, leafWid * 0.7, 0, 0);
+    ctx.fill();
+    
+    // Leaf center vein
+    ctx.strokeStyle = 'rgba(30,80,30,0.3)';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(leafLen * 0.05, 0);
+    ctx.quadraticCurveTo(leafLen * 0.5, -leafWid * 0.15, leafLen * 0.9, -leafWid * 0.1);
+    ctx.stroke();
+    
+    // Leaf highlight
+    ctx.globalAlpha = 0.2;
+    ctx.strokeStyle = 'rgba(200,255,200,0.4)';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(leafLen * 0.1, -leafWid * 0.15);
+    ctx.quadraticCurveTo(leafLen * 0.4, -leafWid * 0.55, leafLen * 0.7, -leafWid * 0.25);
+    ctx.stroke();
+    
+    ctx.restore();
+  },
+  
+  _drawHighlights(ctx) {
+    // Main specular highlight (stronger glossy shine)
     const specGrad = ctx.createRadialGradient(
       this.cx - this.radius * 0.3, this.cy - this.radius * 0.35, 0,
       this.cx - this.radius * 0.3, this.cy - this.radius * 0.35, this.radius * 0.55
     );
-    specGrad.addColorStop(0, 'rgba(255,255,255,0.22)');
-    specGrad.addColorStop(0.5, 'rgba(255,255,255,0.06)');
+    specGrad.addColorStop(0, 'rgba(255,255,255,0.35)');
+    specGrad.addColorStop(0.35, 'rgba(255,255,255,0.12)');
+    specGrad.addColorStop(0.7, 'rgba(255,255,255,0.03)');
     specGrad.addColorStop(1, 'rgba(255,255,255,0)');
     ctx.fillStyle = specGrad;
     ctx.beginPath();
     ctx.arc(this.cx, this.cy, this.radius, 0, Math.PI * 2);
     ctx.fill();
     
-    // Draw rim/edge glow
+    // Second smaller, brighter specular spot (tight glint)
+    const spec2Grad = ctx.createRadialGradient(
+      this.cx - this.radius * 0.22, this.cy - this.radius * 0.28, 0,
+      this.cx - this.radius * 0.22, this.cy - this.radius * 0.28, this.radius * 0.18
+    );
+    spec2Grad.addColorStop(0, 'rgba(255,255,255,0.5)');
+    spec2Grad.addColorStop(0.5, 'rgba(255,255,255,0.15)');
+    spec2Grad.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = spec2Grad;
+    ctx.beginPath();
+    ctx.arc(this.cx, this.cy, this.radius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Rim darkening
     const rimGrad = ctx.createRadialGradient(
       this.cx, this.cy, this.radius * 0.85,
       this.cx, this.cy, this.radius
     );
     rimGrad.addColorStop(0, 'rgba(0,0,0,0)');
-    rimGrad.addColorStop(1, 'rgba(0,0,0,0.35)');
+    rimGrad.addColorStop(1, 'rgba(0,0,0,0.3)');
     ctx.fillStyle = rimGrad;
     ctx.beginPath();
     ctx.arc(this.cx, this.cy, this.radius, 0, Math.PI * 2);
     ctx.fill();
-    
-    ctx.restore();
-    
-    // Draw falling pieces
+  },
+  
+  _drawFallingPieces(ctx) {
     for (const p of this.fallingPieces) {
       ctx.save();
       ctx.globalAlpha = p.life;
       ctx.translate(p.x, p.y);
       ctx.rotate(p.rotation);
-      const pieceGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, p.size);
-      pieceGrad.addColorStop(0, '#dd3333');
-      pieceGrad.addColorStop(1, '#881122');
-      ctx.fillStyle = pieceGrad;
-      this.drawHex(ctx, 0, 0, p.size * 0.8);
+      
+      // Scale down as they fall
+      const s = 0.6 + p.life * 0.4;
+      ctx.scale(s, s);
+      
+      const r = Math.round(210 + p.colorShift * 100);
+      const g = Math.round(45 + p.colorShift * 50);
+      const b = Math.round(42 + p.colorShift * 45);
+      
+      ctx.beginPath();
+      for (let i = 0; i < p.verts.length; i++) {
+        const v = p.verts[i];
+        if (i === 0) ctx.moveTo(v.x, v.y);
+        else ctx.lineTo(v.x, v.y);
+      }
+      ctx.closePath();
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
       ctx.fill();
+      ctx.strokeStyle = 'rgba(80,15,15,0.4)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      
       ctx.restore();
     }
   },
   
-  drawHex(ctx, x, y, size) {
+  _drawPressEffect(ctx) {
+    // Subtle indent shadow at press point
+    const pg = ctx.createRadialGradient(
+      this.pressX, this.pressY, 0,
+      this.pressX, this.pressY, this.radius * 0.15
+    );
+    pg.addColorStop(0, 'rgba(0,0,0,0.12)');
+    pg.addColorStop(0.6, 'rgba(0,0,0,0.04)');
+    pg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = pg;
     ctx.beginPath();
-    for (let i = 0; i < 6; i++) {
-      const angle = Math.PI / 3 * i - Math.PI / 6;
-      const px = x + size * Math.cos(angle);
-      const py = y + size * Math.sin(angle);
-      if (i === 0) ctx.moveTo(px, py);
-      else ctx.lineTo(px, py);
-    }
-    ctx.closePath();
-  }
+    ctx.arc(this.pressX, this.pressY, this.radius * 0.15, 0, Math.PI * 2);
+    ctx.fill();
+  },
 };
 
 // ============================================================
@@ -995,15 +1481,15 @@ const MeshBall = {
     }
     ctx.closePath();
     
-    // Body gradient
+    // Body gradient - pink/salmon tones
     const g = ctx.createRadialGradient(
       this.cx - this.radius * 0.15, this.cy - this.radius * 0.15, 0,
       this.cx, this.cy, this.radius * 1.1
     );
-    g.addColorStop(0, '#e8c0b8');
-    g.addColorStop(0.35, '#d5ada5');
-    g.addColorStop(0.7, '#c99a92');
-    g.addColorStop(1, '#b5857c');
+    g.addColorStop(0, '#f5a8a0');
+    g.addColorStop(0.35, '#e8908a');
+    g.addColorStop(0.7, '#d57878');
+    g.addColorStop(1, '#c06868');
     ctx.fillStyle = g;
     ctx.fill();
     
@@ -1012,8 +1498,8 @@ const MeshBall = {
       this.cx, this.cy, this.radius * 0.8,
       this.cx, this.cy, this.radius * 1.05
     );
-    rimG.addColorStop(0, 'rgba(100,50,40,0)');
-    rimG.addColorStop(1, 'rgba(100,50,40,0.15)');
+    rimG.addColorStop(0, 'rgba(130,50,50,0)');
+    rimG.addColorStop(1, 'rgba(130,50,50,0.18)');
     ctx.fillStyle = rimG;
     ctx.fill();
   },
@@ -1070,10 +1556,10 @@ const MeshBall = {
         0,
         bx, by, bulgeR * 1.1
       );
-      dg.addColorStop(0, '#eecfc8');
-      dg.addColorStop(0.4, '#deb5ad');
-      dg.addColorStop(0.75, '#d0a49c');
-      dg.addColorStop(1, '#c09088');
+      dg.addColorStop(0, '#f5b5ad');
+      dg.addColorStop(0.4, '#ea9a92');
+      dg.addColorStop(0.75, '#d88580');
+      dg.addColorStop(1, '#cc7872');
       
       ctx.fillStyle = dg;
       ctx.beginPath();
@@ -1301,9 +1787,11 @@ const app = {
     document.getElementById('progress-wrap').classList.remove('show');
     document.getElementById('squeeze-hint').classList.remove('show');
     MeshBall.release();
+    WaxShell.release();
     Audio.stopSqueeze();
     Particles.items = [];
     WaxShell.fallingPieces = [];
+    WaxShell.crackLines = [];
   },
   
   getXY(e) {
@@ -1347,19 +1835,12 @@ const app = {
   
   handlePress(x, y) {
     if (this.state === 'waxBreaking') {
-      const d = dist(x, y, this.ballCX, this.ballCY);
-      if (d < this.ballRadius) {
-        const hit = WaxShell.tap(x, y);
-        if (hit) {
-          Audio.playCrack();
-          // Haptic
-          if (navigator.vibrate) navigator.vibrate(15);
-          
-          // Hide hint after first tap
-          if (this.waxHintShown) {
-            document.getElementById('wax-hint').classList.remove('show');
-            this.waxHintShown = false;
-          }
+      const hit = WaxShell.press(x, y);
+      if (hit) {
+        // Hide hint after first interaction
+        if (this.waxHintShown) {
+          document.getElementById('wax-hint').classList.remove('show');
+          this.waxHintShown = false;
         }
       }
     } else if (this.state === 'playing') {
@@ -1375,13 +1856,17 @@ const app = {
   },
   
   handleMove(x, y) {
-    if (this.state === 'playing') {
+    if (this.state === 'waxBreaking') {
+      WaxShell.drag(x, y);
+    } else if (this.state === 'playing') {
       MeshBall.move(x, y);
     }
   },
   
   handleRelease() {
-    if (this.state === 'playing') {
+    if (this.state === 'waxBreaking') {
+      WaxShell.release();
+    } else if (this.state === 'playing') {
       MeshBall.release();
       Audio.stopSqueeze();
     }
@@ -1396,7 +1881,7 @@ const app = {
     ctx.scale(this.dpr, this.dpr);
     
     // Clear
-    ctx.fillStyle = '#0a0a0f';
+    ctx.fillStyle = '#12080c';
     ctx.fillRect(0, 0, this.W, this.H);
     
     // Background particles
